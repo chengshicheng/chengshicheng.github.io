@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="preconnect" href="//www.googletagmanager.com">
+	<link rel="preconnect" href="//zz.bdstatic.com">
+	<link rel="preconnect" href="//sp0.baidu.com">
+	<link rel="preconnect" href="//www.google-analytics.com">
+	<link rel="preconnect" href="//cdn1.lncld.net">
+	<link rel="preconnect" href="//unpkg.com">
+	<link rel="preconnect" href="//app-router.leancloud.cn">
+	<link rel="preconnect" href="//9qpuwspm.api.lncld.net">
+	<link rel="preconnect" href="//gravatar.loli.net">
+
+	<title>Linux gcc编译动态、静态链接库 | chengshicheng</title>
+
+	<meta name="HandheldFriendly" content="True">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+	<meta name="generator" content="hexo">
+	<meta name="author" content="chengshicheng">
+	<meta name="description" content>
+
+	
+	<meta name="keywords" content>
+	
+
+	
+	<link rel="shortcut icon" href="http://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	<link rel="apple-touch-icon" href="http://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	
+
+	
+	<meta name="theme-color" content="#3c484e">
+	<meta name="msapplication-TileColor" content="#3c484e">
+	
+
+	
+
+	
+
+	<meta property="og:site_name" content="chengshicheng">
+	<meta property="og:type" content="article">
+	<meta property="og:title" content="Linux gcc编译动态、静态链接库 | chengshicheng">
+	<meta property="og:description" content>
+	<meta property="og:url" content="https://chengshicheng.site/2019/09/07/gcc-so/">
+
+	
+	<meta property="article:published_time" content="2019-09-07T00:09:00+08:00"> 
+	<meta property="article:author" content="chengshicheng">
+	<meta property="article:published_first" content="chengshicheng, /2019/09/07/gcc-so/">
+	
+
+	
+	
+	<link rel="stylesheet" href="/css/allinonecss.min.css">
+
+	
+	
+	
+</head>
+<body class="post-template">
+	<div class="site-wrapper">
+		
+
+
+
+
+<header class="site-header post-site-header outer">
+    <div class="inner">
+        
+<nav class="site-nav"> 
+    <div class="site-nav-left">
+        <ul class="nav">
+            <li>
+                
+                <a href="/" title="Home">HOME</a>
+                
+            </li>
+            
+            
+            <li>
+                <a href="/about" title="ABOUT">ABOUT</a>
+            </li>
+            
+            <li>
+                <a href="/archives" title="ARCHIVES">ARCHIVES</a>
+            </li>
+            
+            
+        </ul> 
+    </div>
+    
+    <div class="search-button-area">
+        <a href="#search" class="search-button">Search ...</a>
+    </div>
+     
+    <div class="site-nav-right">
+        
+        <a href="#search" class="search-button">Search ...</a>
+         
+        
+<div class="social-links">
+    
+    
+    
+    
+    
+    
+    
+</div>
+    </div>
+</nav>
+    </div>
+</header>
+
+
+<div id="site-main" class="site-main outer" role="main">
+    <div class="inner">
+        <header class="post-full-header">
+            <div class="post-full-meta">
+                <time class="post-full-meta-date" datetime="2019-09-06T16:45:38.000Z">
+                    2019-09-7
+                </time>
+                
+                <span class="date-divider">/</span>
+                
+                
+            </div>
+            <h1 class="post-full-title">Linux gcc编译动态、静态链接库</h1>
+        </header>
+        <div class="post-full ">
+            
+            <figure class="post-full-image" style="background-image: url(https://cdn.pixabay.com/photo/2016/06/24/12/36/surf-1477175_1280.jpg)">
+            </figure>
+            
+            <div class="post-full-content">
+                <article id="photoswipe" class="markdown-body">
+                    <h1 id="库的分类"><a href="#库的分类" class="headerlink" title="库的分类"></a>库的分类</h1><h3 id="动态链接库"><a href="#动态链接库" class="headerlink" title="动态链接库"></a>动态链接库</h3><p>动态库的链接是在程序执行的时候被链接的。所以，即使程序编译完，依赖库仍须保留在系统上，以供程序运行时调用。如果依赖库文件找不到了，动态链接库就无法正常运行了。</p>
+<h3 id="静态链接库"><a href="#静态链接库" class="headerlink" title="静态链接库"></a>静态链接库</h3><p>静态链接库不受依赖库的影响，即使依赖库被删除了，程序依然可以运行成功。</p>
+<p>两种库文件应该是各有利弊，静态链接库的本质其实是赋值粘贴的过程，编译过程中会将所使用的库文件一起打包嵌入到可执行文件中。相比之下，链接动态库的程序体积会小很多。</p>
+<p>接下类将分别编译静态和动态库，最后动手看看具体有什么区别。首先新建<code>static</code> 和<code>dynamic</code>文件夹，用于存放各自代码。</p>
+<h1 id="编译动态库"><a href="#编译动态库" class="headerlink" title="编译动态库"></a>编译动态库</h1><p>进入 <code>dynamic</code> 文件夹，新建 <code>add.c</code> 文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> c;</span><br><span class="line">	c = a+b;</span><br><span class="line">   	<span class="built_in">printf</span>(<span class="string">"from c add() : %d\n"</span>,c);</span><br><span class="line">   	<span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>运行以下命令编译，会生成 <code>libadd.so</code> 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -fPIC -shared add.c -o libadd.so</span><br></pre></td></tr></table></figure>
+<p>实际上上述过程分为编译和链接两步：</p>
+<p>-fPIC是编译选项，PIC是 Position Independent Code的缩写，表示要生成位置无关的代码，这是动态库需要的特性； </p>
+<p>-shared是链接选项，告诉gcc生成动态库而不是可执行文件。</p>
+<p>上述的一行命令等同于下面两个命令，第一行是把 <code>add.c</code> 编译成可执行文件 <code>add.o</code>, 如果在C程序中加入 <code>main()</code> 函数，是可以直接运行 <code>add.o</code> 文件的；第二行是通过 <code>-shared</code> 参数将 <code>add.o</code> 实现动态链接，得到 <code>libadd.so</code> 。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">gcc -c -fPIC add.c</span><br><span class="line">gcc -shared -o libadd.so add.o</span><br></pre></td></tr></table></figure>
+
+<p>接下来我们将新建 <code>test.c</code> 来测试刚刚生成的动态链接库<br>首先创建 <code>add.h</code> 头文件</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">add</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>写入测试程序到 <code>test.c</code> ：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &quot;add.h&quot;</span><br><span class="line"> </span><br><span class="line">int main()&#123;</span><br><span class="line">	printf(&quot;call add in test.c\n&quot;);</span><br><span class="line">	add(2,3);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译 <code>test.c</code> 文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc test.c -L. -ladd -o test</span><br></pre></td></tr></table></figure>
+<p>-L的选项是指定编译器在搜索动态库时搜索的路径，告诉编译器 <code>add.so</code>库的位置。”.”意思即当前路径，如果不指定，编译器会找不到依赖库而报错</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">➜  dynamic gcc test.c -ladd -o test</span><br><span class="line">/usr/bin/ld: 找不到 -ladd</span><br><span class="line">collect2: 错误：ld 返回 1</span><br></pre></td></tr></table></figure>
+
+<p>-l选项是因为<br>Linux下的库文件在命名时有一个约定，就是应该以 lib 这3个字母开头，由于所有的库文件都遵循了同样的规范，因此在用 -l 选项指定链接的库文件名时可以省去 lib 这3个字母。例如，gcc 在对 <code>-ladd</code> 进行处理时，会自动去<code>-L</code> 指定的文件夹下链接名为 <code>libadd.so</code> 的文件。</p>
+<p>编译完成后，文件夹下有以下文件：</p>
+<figure class="highlight zsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜  dynamic ls</span><br><span class="line">add.c  add.h  libadd.so  <span class="built_in">test</span>  test.c</span><br></pre></td></tr></table></figure>
+
+<p>我们刚刚在 <code>test.c</code>文件中是定义了 <code>main()</code> 函数的，此时编译后的 <code>test</code> 应该是可以直接运行的。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">➜  dynamic ./test</span><br><span class="line">./test: error while loading shared libraries: libadd.so: cannot open shared object file: No such file or directory</span><br><span class="line">➜  dynamic ldd test.so</span><br><span class="line">	linux-vdso.so.1 (0x00007ffc859df000)</span><br><span class="line">	libadd.so =&gt; not found</span><br><span class="line">	libc.so.6 =&gt; /usr/lib/libc.so.6 (0x00007f72e33fb000)</span><br><span class="line">	/lib64/ld-linux-x86-64.so.2 =&gt; /usr/lib64/ld-linux-x86-64.so.2 (0x00007f72e35fb000)</span><br><span class="line">➜  dynamic</span><br></pre></td></tr></table></figure>
+
+<p>报错信息提示找不到<code>libadd.so</code> 文件，通过 <code>ldd</code> 命令查看依赖库时也提示未找到，最简单的方式是将依赖库文件拷贝到系统目录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">➜  dynamic  sudo cp libadd.so /usr/lib</span><br><span class="line">[sudo] chengshicheng 的密码：</span><br><span class="line">➜  dynamic </span><br><span class="line">➜  dynamic ./test</span><br><span class="line">call add in test.c</span><br><span class="line">from c add() : 5 </span><br><span class="line">➜  dynamic</span><br></pre></td></tr></table></figure>
+
+<p>这样，再次执行就成功了，可以看到在<code>main()</code> 函数中调用了<code>libadd.so</code>动态库中的方法，并计算成功。</p>
+<h1 id="编译静态库"><a href="#编译静态库" class="headerlink" title="编译静态库"></a>编译静态库</h1><p>静态库代码和动态库基本一样,只是gcc编译命令参数和动态链接库的有一些差别。先进入 <code>static</code> 文件夹，新建 <code>add.c</code> 文件：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">add</span><span class="params">(<span class="keyword">int</span> a,<span class="keyword">int</span> b)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> c;</span><br><span class="line">	c = a+b;</span><br><span class="line">   	<span class="built_in">printf</span>(<span class="string">"from c add() : %d\n"</span>,c);</span><br><span class="line">   	<span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译 <code>add.c</code> 文件，会生成 <code>add.o</code>文件，注意到这里和编译动态链接库时的命令就是少了<code>-fPIC</code>参数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -c add.c</span><br></pre></td></tr></table></figure>
+<p>生成静态库</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ar -r libadd.a add.o</span><br></pre></td></tr></table></figure>
+
+<p>现在可以开始测试刚刚生成的静态链接库 <code>libmyadd.a</code>，首先新建 <code>add.h</code>头文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">void add();</span><br></pre></td></tr></table></figure>
+<p>然后新建测试文件 <code>test.c</code> ：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;stdio.h&gt;</span><br><span class="line">#include &quot;add.h&quot;</span><br><span class="line"> </span><br><span class="line">int main()&#123;</span><br><span class="line">	printf(&quot;call add in test.c\n&quot;);</span><br><span class="line">	add(3,5);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>编译运行</p>
+<figure class="highlight zsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">➜  static gcc test.c -ladd -L. -static -o <span class="built_in">test</span></span><br><span class="line">➜  static ls</span><br><span class="line">add.c  add.h  add.o  libadd.a  <span class="built_in">test</span>  test.c</span><br><span class="line">➜  static ./<span class="built_in">test</span></span><br><span class="line">call add <span class="keyword">in</span> test.c</span><br><span class="line">from c add() : 8</span><br><span class="line">➜  static </span><br><span class="line">`</span><br></pre></td></tr></table></figure>
+
+<p>要验证依赖库确实是静态库，我们移除静态库   <code>libadd.a</code> 文件试试看：</p>
+<figure class="highlight zsh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">➜  static mv libadd.a libadd.a.back</span><br><span class="line">➜  static ls</span><br><span class="line">add.c  add.h  add.o  libadd.a.back  <span class="built_in">test</span>  test.c</span><br><span class="line">➜  static ./<span class="built_in">test</span> </span><br><span class="line">call add <span class="keyword">in</span> test.c</span><br><span class="line">from c add() : 8</span><br><span class="line">➜  static</span><br></pre></td></tr></table></figure>
+
+<p>以上，静态链接库经过验证之后没有问题。上文中我们提到过链接静态库会比动态的文件体积大，那我们来对比下，直接上数据：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">➜  static ll</span><br><span class="line">总用量 764K</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng  114  9月  6 00:59 add.c</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng   13  9月  6 01:10 add.h</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng 1.6K  9月  6 01:21 add.o</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng 1.7K  9月  7 00:14 libadd.a.back</span><br><span class="line">-rwxr-xr-x 1 chengshicheng chengshicheng 743K  9月  7 00:21 test</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng   96  9月  6 01:09 test.c</span><br><span class="line">➜  static ll ../dynamic </span><br><span class="line">总用量 48K</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng 114  9月  6 00:46 add.c</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng  12  9月  5 23:56 add.h</span><br><span class="line">-rwxr-xr-x 1 chengshicheng chengshicheng 16K  9月  6 00:46 libadd.so</span><br><span class="line">-rwxr-xr-x 1 chengshicheng chengshicheng 17K  9月  7 00:18 test</span><br><span class="line">-rw-r--r-- 1 chengshicheng chengshicheng  96  9月  6 00:46 test.c</span><br></pre></td></tr></table></figure>
+<p>可以看到，在源文件<code>add.c</code> 、<code>add.h</code> 、<code>test.c</code> 三个文件大小一致的前提下，最终打包出来的<code>test</code> 可执行文件，链接静态库和链接动态库的文件体积相差了近<code>44</code>倍！</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>通过以上对比，对链接两种不同的库文件的区别也有了一定的了解，其实并不存在优劣的区别；根据场景，我们可以选择不同的方案，比如使用动态链接库时，需要运行环境中存在对应的库文件，如果使用静态库就不存在这个问题，更方便调用者使用。</p>
+
+                </article>
+                <ul class="tags-postTags">
+                    
+                    <li>
+                        <a href="/tags/Linux/" rel="tag"># Linux</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/gcc/" rel="tag"># gcc</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    <nav id="gobottom" class="pagination">
+        
+        <a class="prev-post" title="python网络通信：ctypes和struct使用总结" href="/2019/09/21/ctypes-struct/">
+            ← python网络通信：ctypes和struct使用总结
+        </a>
+        
+        <span class="prev-next-post">·</span>
+        
+        <a class="next-post" title="Python编译so" href="/2019/09/01/python-so/">
+            Python编译so →
+        </a>
+        
+    </nav>
+
+    
+    <div class="inner">
+        <div id="comment"></div>
+    </div>
+    
+</div>
+
+<div class="toc-bar">
+    <div class="toc-btn-bar">
+        <a href="#site-main" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M793.024 710.272a32 32 0 1 0 45.952-44.544l-310.304-320a32 32 0 0 0-46.4 0.48l-297.696 320a32 32 0 0 0 46.848 43.584l274.752-295.328 286.848 295.808z"/></svg>
+        </a>
+        <div class="toc-btn toc-switch">
+            <svg class="toc-open" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M779.776 480h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M779.776 672h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M256 288a32 32 0 1 0 0 64 32 32 0 0 0 0-64M392.576 352h387.2a32 32 0 0 0 0-64h-387.2a32 32 0 0 0 0 64M256 480a32 32 0 1 0 0 64 32 32 0 0 0 0-64M256 672a32 32 0 1 0 0 64 32 32 0 0 0 0-64"/></svg>
+            <svg class="toc-close hide" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M512 960c-247.039484 0-448-200.960516-448-448S264.960516 64 512 64 960 264.960516 960 512 759.039484 960 512 960zM512 128.287273c-211.584464 0-383.712727 172.128262-383.712727 383.712727 0 211.551781 172.128262 383.712727 383.712727 383.712727 211.551781 0 383.712727-172.159226 383.712727-383.712727C895.712727 300.415536 723.551781 128.287273 512 128.287273z"/><path d="M557.05545 513.376159l138.367639-136.864185c12.576374-12.416396 12.672705-32.671738 0.25631-45.248112s-32.704421-12.672705-45.248112-0.25631l-138.560301 137.024163-136.447897-136.864185c-12.512727-12.512727-32.735385-12.576374-45.248112-0.063647-12.512727 12.480043-12.54369 32.735385-0.063647 45.248112l136.255235 136.671523-137.376804 135.904314c-12.576374 12.447359-12.672705 32.671738-0.25631 45.248112 6.271845 6.335493 14.496116 9.504099 22.751351 9.504099 8.12794 0 16.25588-3.103239 22.496761-9.247789l137.567746-136.064292 138.687596 139.136568c6.240882 6.271845 14.432469 9.407768 22.65674 9.407768 8.191587 0 16.352211-3.135923 22.591372-9.34412 12.512727-12.480043 12.54369-32.704421 0.063647-45.248112L557.05545 513.376159z"/></svg>
+        </div>
+        <a href="#gobottom" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M231.424 346.208a32 32 0 0 0-46.848 43.584l297.696 320a32 32 0 0 0 46.4 0.48l310.304-320a32 32 0 1 0-45.952-44.544l-286.848 295.808-274.752-295.36z"/></svg>
+        </a>
+    </div>
+    <div class="toc-main">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#库的分类"><span class="toc-text">库的分类</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#动态链接库"><span class="toc-text">动态链接库</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#静态链接库"><span class="toc-text">静态链接库</span></a></li></ol></li></ol><li class="toc-item toc-level-1"><a class="toc-link" href="#编译动态库"><span class="toc-text">编译动态库</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#编译静态库"><span class="toc-text">编译静态库</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#总结"><span class="toc-text">总结</span></a></li>
+    </div>
+</div>
+
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+	</div>
+	
+
+
+<aside class="read-next outer">
+    <div class="inner">
+        <div class="read-next-feed">
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+  <header class="read-next-card-header">
+    <small class="read-next-card-header-sitetitle">&mdash; chengshicheng &mdash;</small>
+    <h3 class="read-next-card-header-title">最新文章</h3>
+  </header>
+  <div class="read-next-divider">
+    <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24">
+      <path d="M13 14.5s2 3 5 3 5.5-2.463 5.5-5.5S21 6.5 18 6.5c-5 0-7 11-12 11C2.962 17.5.5 15.037.5 12S3 6.5 6 6.5s4.5 3.5 4.5 3.5"/>
+    </svg>
+  </div>
+  <div class="read-next-card-content">
+    <ul>
+      
+      
+      
+      <li>
+        <a href="/2019/11/16/django-mid/">django自定义中间件</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/09/21/ctypes-struct/">python网络通信：ctypes和struct使用总结</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/09/07/gcc-so/">Linux gcc编译动态、静态链接库</a>
+      </li>
+      
+      
+      
+      
+      
+      
+      
+      
+    </ul>
+  </div>
+  <footer class="read-next-card-footer">
+    <a href="/archives">  MORE  → </a>
+  </footer>
+</article>
+
+            
+            
+            
+
+
+            
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+	<header class="read-next-card-header tagcloud-card">
+		<h3 class="read-next-card-header-title">标签云</h3>
+	</header>
+	<div class="read-next-card-content-ext">
+		<a href="/tags/Linux/" style="font-size: 14px;">Linux</a> <a href="/tags/django/" style="font-size: 14px;">django</a> <a href="/tags/gcc/" style="font-size: 14px;">gcc</a> <a href="/tags/mongo/" style="font-size: 19px;">mongo</a> <a href="/tags/python/" style="font-size: 24px;">python</a> <a href="/tags/so/" style="font-size: 14px;">so</a>
+	</div>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+	
+
+
+
+
+<div id="search" class="search-overlay">
+    <div class="search-form">
+        
+        <div class="search-overlay-logo">
+        	<img src="http://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132" alt="chengshicheng">
+        </div>
+        
+        <input id="local-search-input" class="search-input" type="text" name="search" placeholder="搜索 ...">
+        <a class="search-overlay-close" href="#"></a>
+    </div>
+    <div id="local-search-result"></div>
+</div>
+
+<footer class="site-footer outer">
+	<div class="site-footer-content inner">
+		<div class="copyright">
+			<a href="/" title="chengshicheng">chengshicheng &copy; 2019</a>
+			
+				
+			        <span hidden="true" id="/2019/09/07/gcc-so/" class="leancloud-visitors" data-flag-title="Linux gcc编译动态、静态链接库">
+			            <span>阅读量 </span>
+			            <span class="leancloud-visitors-count">0</span>
+			        </span>
+	    		
+    		
+		</div>
+		<nav class="site-footer-nav">
+			
+			<a href="https://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a>
+			<a href="https://github.com/xzhih/hexo-theme-casper" title="Casper" target="_blank" rel="noopener">Casper</a>
+		</nav>
+	</div>
+</footer>
+	
+
+
+<script>
+    if(window.navigator && navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister()
+            }
+        })
+    }
+</script>
+
+
+<script id="scriptLoad" src="/js/allinone.min.js" async></script>
+
+
+<script>
+    document.getElementById('scriptLoad').addEventListener('load', function () {
+        
+        
+            var bLazy = new Blazy();
+        
+
+        
+        
+
+        
+        
+        
+            searchFunc("/");
+        
+        
+    })
+</script>
+
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+
+
+<script id="valineScript" src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+<script>
+    document.getElementById('valineScript').addEventListener("load", function() {
+        new Valine({
+            el: '#comment' ,
+            verify: false,
+            notify: false,
+            appId: '',
+            appKey: '',
+            placeholder: 'Just go go',
+            pageSize: 10,
+            avatar: 'mm',
+            visitor: true
+        })
+    });
+</script>
+
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        var bp = document.createElement('script');
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        }
+        else {
+            bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+        }
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(bp, s);
+    });
+</script>
+
+
+</body>
+</html>
