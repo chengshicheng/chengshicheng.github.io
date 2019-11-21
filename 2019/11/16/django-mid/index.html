@@ -163,7 +163,7 @@
 </ul>
 <p>看方法名称就能看出来都是干什么的了，根据自己需要新建自定义类即可。</p>
 <h2 id="中间件原理"><a href="#中间件原理" class="headerlink" title="中间件原理"></a>中间件原理</h2><p>在整个请求到相应的过程中，会两次调用Middleware类，所以在设置的时候需要注意中间件的顺序，先看一下我当前项目设置的Middleware类：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">MIDDLEWARE_CLASSES = [</span><br><span class="line">    &apos;corsheaders.middleware.CorsMiddleware&apos;,</span><br><span class="line">    &apos;django.middleware.security.SecurityMiddleware&apos;,</span><br><span class="line">    &apos;django.middleware.common.CommonMiddleware&apos;,</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">MIDDLEWARE_CLASSES = [</span><br><span class="line">    <span class="string">'corsheaders.middleware.CorsMiddleware'</span>,</span><br><span class="line">    <span class="string">'django.middleware.security.SecurityMiddleware'</span>,</span><br><span class="line">    <span class="string">'django.middleware.common.CommonMiddleware'</span>,</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
 <p>在请求周期中，会<strong>自上而下</strong>的执行Middleware类，即首先执行CorsMiddleware类，依次执行到CommonMiddleware类，对于每个中间件，它都会执行process_request()和process_view()方法。<br>接下来Django将会在view中执行，完成view应该完成的工作（查询数据库，分页，处理信息，逻辑处理等等），然后为客户端返回<code>Response</code>响应。</p>
 <p>在响应周期中，将<strong>自下而上</strong>执行Middleware类，即首先执行CommonMiddleware，最后执行 CorsMiddleware。同理，对于每个中间件，它将执行process_exception()，process_template_response()和process_response()方法。</p>
 <p>以上都执完毕之后，才回返回响应到客户端。下图是从Django官方文档中提取的，图解很形象。<br><a href="https://docs.djangoproject.com/en/1.8/_images/middleware.svg" target="_blank" rel="noopener"><img alt class="post-img b-lazy" data-img="https://docs.djangoproject.com/en/1.8/_images/middleware.svg" data-index="0" data-src="https://docs.djangoproject.com/en/1.8/_images/middleware.svg"></a></p>
@@ -172,7 +172,7 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">import logging</span><br><span class="line">from django.utils.deprecation import MiddlewareMixin</span><br><span class="line">logger = logging.getLogger(__name__)</span><br><span class="line"></span><br><span class="line">class LogExceptionMiddleware(MiddlewareMixin):</span><br><span class="line"></span><br><span class="line">    def process_exception(self, request, exception):</span><br><span class="line">        import traceback</span><br><span class="line">        logger.error(traceback.format_exc())</span><br></pre></td></tr></table></figure>
 
 <p>接下来去<code>setting.py</code> 文件中添加<code>LogExceptionMiddleware</code>到Django中间件类集合中即可：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">MIDDLEWARE_CLASSES = [</span><br><span class="line">    ...</span><br><span class="line">    &apos;lib.exeption.LogExceptionMiddleware&apos;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">MIDDLEWARE_CLASSES = [</span><br><span class="line">    ...</span><br><span class="line">    <span class="string">'lib.exeption.LogExceptionMiddleware'</span></span><br><span class="line">]</span><br></pre></td></tr></table></figure>
 
 <p>启动服务，随便抛个异常，就能在log文件中看到异常信息了。</p>
 
@@ -180,11 +180,11 @@
                 <ul class="tags-postTags">
                     
                     <li>
-                        <a href="/tags/django/" rel="tag"># django</a>
+                        <a href="/tags/python/" rel="tag"># python</a>
                     </li>
                     
                     <li>
-                        <a href="/tags/python/" rel="tag"># python</a>
+                        <a href="/tags/django/" rel="tag"># django</a>
                     </li>
                     
                 </ul>
