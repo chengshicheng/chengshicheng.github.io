@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="preconnect" href="//www.googletagmanager.com">
+	<link rel="preconnect" href="//zz.bdstatic.com">
+	<link rel="preconnect" href="//sp0.baidu.com">
+	<link rel="preconnect" href="//www.google-analytics.com">
+	<link rel="preconnect" href="//cdn1.lncld.net">
+	<link rel="preconnect" href="//unpkg.com">
+	<link rel="preconnect" href="//app-router.leancloud.cn">
+	<link rel="preconnect" href="//9qpuwspm.api.lncld.net">
+	<link rel="preconnect" href="//gravatar.loli.net">
+
+	<title>selenium爬虫总结 | chengshicheng</title>
+
+	<meta name="HandheldFriendly" content="True">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+	<meta name="generator" content="hexo">
+	<meta name="author" content="chengshicheng">
+	<meta name="description" content>
+
+	
+	<meta name="keywords" content>
+	
+
+	
+	<link rel="shortcut icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	<link rel="apple-touch-icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	
+
+	
+	<meta name="theme-color" content="#3c484e">
+	<meta name="msapplication-TileColor" content="#3c484e">
+	
+
+	
+
+	
+
+	<meta property="og:site_name" content="chengshicheng">
+	<meta property="og:type" content="article">
+	<meta property="og:title" content="selenium爬虫总结 | chengshicheng">
+	<meta property="og:description" content>
+	<meta property="og:url" content="https://chengshicheng.site/2019/12/15/spider-summary/">
+
+	
+	<meta property="article:published_time" content="2019-12-15T21:12:00+08:00"> 
+	<meta property="article:author" content="chengshicheng">
+	<meta property="article:published_first" content="chengshicheng, /2019/12/15/spider-summary/">
+	
+
+	
+	
+	<link rel="stylesheet" href="/css/allinonecss.min.css">
+
+	
+	
+	
+</head>
+<body class="post-template">
+	<div class="site-wrapper">
+		
+
+
+
+
+<header class="site-header post-site-header outer">
+    <div class="inner">
+        
+<nav class="site-nav"> 
+    <div class="site-nav-left">
+        <ul class="nav">
+            <li>
+                
+                <a href="/" title="Home">HOME</a>
+                
+            </li>
+            
+            
+            <li>
+                <a href="/about" title="ABOUT">ABOUT</a>
+            </li>
+            
+            <li>
+                <a href="/archives" title="ARCHIVES">ARCHIVES</a>
+            </li>
+            
+            
+        </ul> 
+    </div>
+    
+    <div class="search-button-area">
+        <a href="#search" class="search-button">Search ...</a>
+    </div>
+     
+    <div class="site-nav-right">
+        
+        <a href="#search" class="search-button">Search ...</a>
+         
+        
+<div class="social-links">
+    
+    
+    
+    
+    
+    
+    
+</div>
+    </div>
+</nav>
+    </div>
+</header>
+
+
+<div id="site-main" class="site-main outer" role="main">
+    <div class="inner">
+        <header class="post-full-header">
+            <div class="post-full-meta">
+                <time class="post-full-meta-date" datetime="2019-12-15T13:59:58.000Z">
+                    2019-12-15
+                </time>
+                
+                <span class="date-divider">/</span>
+                
+                
+            </div>
+            <h1 class="post-full-title">selenium爬虫总结</h1>
+        </header>
+        <div class="post-full no-image">
+            
+            <div class="post-full-content">
+                <article id="photoswipe" class="markdown-body">
+                    <h2 id="1-前言"><a href="#1-前言" class="headerlink" title="1 前言"></a>1 前言</h2><p>最近由于项目需要，需要抓取网络上的一下数据，爬虫被正式加入到正式需求。其实我个人是不建议将爬虫接入到正式的项目中的，一来是有爬虫就有反爬虫，程序能稳定多久完全靠运气，网站的接口数据或页面格式稍有变动，爬虫就挂了，这种还是比较好解决的；一旦反扒机制升级，那就是噩梦的开始。二来其实会对服务器造成压力，如果爬取数据量大的话，一般网站也许就扛不住了，一旦造成服务器瘫痪，约等于网络攻击，最后一点。也是最重要的，爬虫可能是违法行为，这个取决于你爬取的数据类型和具体用途，也取决于对方想不想追究你的责任。总之一句话，且爬且珍惜。。。</p>
+<p>开始爬虫之前，有以下几个建议：</p>
+<ol>
+<li>能通过接口拿到的，不要通过浏览器拿。爬虫的目的是要得到数据，能通过API直接拿到，不仅速度快，还不用解析界面。</li>
+<li>不要只盯着PC端看，多看看移动端的网页或者API，会有惊喜。</li>
+</ol>
+<p>在确定要爬谁之前，先开个Fiddler,Charles等顺手的抓包工具，PC端，APP端，MobileWeb端，甚至小程序端，看一下能不到找带到现成的API。实在不行页面+API混着用也可以。接口需要认证权限的话还需要再寻找如何绕过去。</p>
+<p>一般来说，PC网页端的数据是最难爬的，反爬机制也是做的最好的，移动端的相对来说会弱很多。</p>
+<h2 id="2-环境搭建"><a href="#2-环境搭建" class="headerlink" title="2 环境搭建"></a>2 环境搭建</h2><p>在PhantomJS停止更新之后，selenium已经不建议使用PhantomJS了，建议使用chrome和firefox浏览器。如果是在自己电脑上运行的话，只要有浏览器就可以，如果要在服务器上运行的话，<br>由于服务器没有安装桌面环境，所以浏览器只能运行在headless模式下，记录一下在Ubuntu Server安装浏览器的步骤：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install selenium</span><br></pre></td></tr></table></figure>
+<p>在调用selenium启动浏览器的时候，需要指定浏览器的可执行文件路径，可以用webdriver_manager来替我们管理浏览器。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pip install webdriver_manager</span><br></pre></td></tr></table></figure>
+<h4 id="2-1-chrome"><a href="#2-1-chrome" class="headerlink" title="2.1 chrome"></a>2.1 chrome</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb</span><br><span class="line">sudo dpkg -i google-chrome*.deb</span><br></pre></td></tr></table></figure>
+<p>如果环境依赖报错，执行以下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo dpkg -i  --force-depends google-chrome*.deb  </span><br><span class="line">sudo apt-get install -f</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-2-firefox"><a href="#2-2-firefox" class="headerlink" title="2.2 firefox"></a>2.2 firefox</h4><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install firefox</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="3-IP代理"><a href="#3-IP代理" class="headerlink" title="3 IP代理"></a>3 IP代理</h2><h4 id="3-1-设置代理"><a href="#3-1-设置代理" class="headerlink" title="3.1 设置代理"></a>3.1 设置代理</h4><ul>
+<li><p>requests</p>
+  <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">proxies = &#123;<span class="string">'http'</span>: <span class="string">f"http://<span class="subst">&#123;host&#125;</span>:<span class="subst">&#123;port&#125;</span>"</span>,</span><br><span class="line">             <span class="string">'https'</span>: <span class="string">f"http://<span class="subst">&#123;host&#125;</span>:<span class="subst">&#123;port&#125;</span>"</span>, &#125;</span><br><span class="line">s = requests.Session()</span><br><span class="line">s.proxies.update(proxies)</span><br><span class="line">url = <span class="string">'http://www.baidu.com'</span></span><br><span class="line">resp = s.get(url)</span><br></pre></td></tr></table></figure></li>
+<li><p>selenium+chrome</p>
+  <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line">  </span><br><span class="line">options =  webdriver.chrome.options.Options()</span><br><span class="line">options.add_argument(<span class="string">f'--proxy-server=http://<span class="subst">&#123;host&#125;</span>:<span class="subst">&#123;port&#125;</span>'</span>)</span><br><span class="line">driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)</span><br><span class="line">driver.get(<span class="string">'http://www,baidu.com'</span>)</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>selenium+firefox</p>
+  <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line"><span class="keyword">from</span> webdriver_manager.firefox <span class="keyword">import</span> GeckoDriverManager</span><br><span class="line"></span><br><span class="line">fp = webdriver.FirefoxProfile()</span><br><span class="line"><span class="comment"># Direct = 0, Manual = 1, PAC = 2, AUTODETECT = 4, SYSTEM = 5</span></span><br><span class="line">fp.set_preference(<span class="string">"network.proxy.type"</span>, <span class="number">1</span>)</span><br><span class="line">fp.set_preference(<span class="string">"network.proxy.http"</span>, host)</span><br><span class="line">fp.set_preference(<span class="string">"network.proxy.http_port"</span>, int(port))</span><br><span class="line">fp.set_preference(<span class="string">"network.proxy.ssl"</span>, host)</span><br><span class="line">fp.set_preference(<span class="string">"network.proxy.ssl_port"</span>, int(port))</span><br><span class="line">fp.update_preferences()</span><br><span class="line"></span><br><span class="line">driver = webdriver.Firefox(GeckoDriverManager().install(),</span><br><span class="line">                         firefox_profile=fp, options=options)</span><br><span class="line">driver.get(<span class="string">'http://www,baidu.com'</span>)</span><br></pre></td></tr></table></figure>
+
+
+
+</li>
+</ul>
+<h4 id="3-2-匿名ip检验"><a href="#3-2-匿名ip检验" class="headerlink" title="3.2 匿名ip检验"></a>3.2 匿名ip检验</h4><p>在设置代理后，可以访问一下页面，查看ip代理是否生效：<a href="http://myip.ipip.net/" target="_blank" rel="noopener">http://myip.ipip.net/</a></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">当前 IP：<span class="number">223.71</span><span class="number">.7</span><span class="number">.223</span>  来自于：中国 广东 深圳  电信</span><br></pre></td></tr></table></figure>
+
+<p>到这一步还不够，真正的高匿名ip是不会暴露客户端的ip的。<br>终极大杀器：<a href="http://httpbin.org/get?show_env=1" target="_blank" rel="noopener">http://httpbin.org/get?show_env=1</a></p>
+<p>Header内容一览无余，不仅仅可以检验IP代理，还可以查看Header内容伪造是否成功</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="string">"args"</span>: &#123;</span><br><span class="line">    <span class="string">"show_env"</span>: <span class="string">"1"</span></span><br><span class="line">  &#125;, </span><br><span class="line">  <span class="string">"headers"</span>: &#123;</span><br><span class="line">    <span class="string">"Accept"</span>: <span class="string">"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3"</span>, </span><br><span class="line">    <span class="string">"Accept-Language"</span>: <span class="string">"en,zh;q=0.9,zh-CN;q=0.8"</span>, </span><br><span class="line">    <span class="string">"Dccept-Encoding"</span>: <span class="string">"none"</span>, </span><br><span class="line">    <span class="string">"Dnt"</span>: <span class="string">"1"</span>, </span><br><span class="line">    <span class="string">"Host"</span>: <span class="string">"httpbin.org"</span>, </span><br><span class="line">    <span class="string">"Upgrade-Insecure-Requests"</span>: <span class="string">"1"</span>, </span><br><span class="line">    <span class="string">"User-Agent"</span>: <span class="string">"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36"</span>, </span><br><span class="line">    <span class="string">"X-Forwarded-For"</span>: <span class="string">"223.71.7.223, 223.71.7.223"</span>, </span><br><span class="line">    <span class="string">"X-Forwarded-Port"</span>: <span class="string">"80"</span>, </span><br><span class="line">    <span class="string">"X-Forwarded-Proto"</span>: <span class="string">"https"</span>, </span><br><span class="line">    <span class="string">"X-Real-Ip"</span>: <span class="string">"223.71.7.223"</span></span><br><span class="line">  &#125;, </span><br><span class="line">  <span class="string">"origin"</span>: <span class="string">"223.71.7.223, 223.71.7.223"</span>, </span><br><span class="line">  <span class="string">"url"</span>: <span class="string">"https://httpbin.org/get?show_env=1"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>非高匿名IP代理请求，在Header中是会包暴露客户端IP的(X-Forwarded-For)，在Header中能同时看到客户端和代理的IP，我的代理是直接付费购买的，还没有遇到过这种情况。</p>
+<h2 id="4-webdriver设置"><a href="#4-webdriver设置" class="headerlink" title="4 webdriver设置"></a>4 webdriver设置</h2><p>在PhantomJS停止更新之后，seleniums已经不建议使用PhantomJS了，不过新版chrome和firefox都支持了headless模式，下面的参数是我用到的，更多参数可以参考官方文档：</p>
+<h4 id="4-1-headlss模式"><a href="#4-1-headlss模式" class="headerlink" title="4.1 headlss模式"></a>4.1 headlss模式</h4><ul>
+<li>selenium+chrome  <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">options = webdriver.chrome.options.Options()</span><br><span class="line">options.add_argument(<span class="string">'--headless'</span>)</span><br><span class="line"> driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)</span><br></pre></td></tr></table></figure></li>
+<li>selenium+firefox  <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">options = webdriver.firefox.options.Options()</span><br><span class="line">options.add_argument(<span class="string">'--headless'</span>)</span><br><span class="line">driver = webdriver.Firefox(options=options)</span><br></pre></td></tr></table></figure>
+或者<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">options = webdriver.firefox.options.Options()</span><br><span class="line">options.headless = <span class="literal">True</span>  </span><br><span class="line">driver = webdriver.Firefox(options=options)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h4 id="4-2-不加载图片"><a href="#4-2-不加载图片" class="headerlink" title="4.2 不加载图片"></a>4.2 不加载图片</h4><p>省去图片能够提高页面的加载速度</p>
+<ul>
+<li>selenium+chrome<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1允许所有图片；2阻止所有图片；3阻止第三方服务器图片</span></span><br><span class="line">options.add_experimental_option(<span class="string">"prefs"</span>, &#123;<span class="string">"profile.managed_default_content_settings.images"</span>: <span class="number">2</span>,&#125;)</span><br></pre></td></tr></table></figure></li>
+<li>selenium+firefox<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">options.set_preference(<span class="string">'permissions.default.image'</span>, <span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h4 id="4-3-设置user-agent"><a href="#4-3-设置user-agent" class="headerlink" title="4.3 设置user-agent"></a>4.3 设置user-agent</h4><p>我感觉修改这个用处不大，毕竟热门的useragent可能就那么多，就算反爬策略监测到了某个user-agent频繁请求，总不能给封了吧，封了之后其他正常用户还让不让用了。<br>安装fake_useragent: <code>pip install fake_useragent</code>，或者自己存一点随机取。</p>
+<ul>
+<li>selenium+chrome<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> fake_useragent <span class="keyword">import</span> UserAgent</span><br><span class="line">options.add_argument(<span class="string">f'user-agent=<span class="subst">&#123;UserAgent().chrome&#125;</span>'</span>)</span><br></pre></td></tr></table></figure></li>
+<li>selenium+firefox<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fp = webdriver.FirefoxProfile()</span><br><span class="line">fp.set_preference(<span class="string">"general.useragent.override"</span>, UserAgent().firefox)</span><br><span class="line">driver = webdriver.Firefox(firefox_profile=fp)</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<h4 id="4-4-避免爬虫监测"><a href="#4-4-避免爬虫监测" class="headerlink" title="4.4 避免爬虫监测"></a>4.4 避免爬虫监测</h4><p>很多资料显示，selenium控制下的浏览器会被监测到，页面通过js代码获取到的<code>window.navigator.webdriver</code> 值不一样，正常手动打开的浏览器获取到的是<code>undefined</code>，而用selenium开启的浏览器是<code>true</code>。在浏览器中按下F12，点击console</p>
+<ul>
+<li>手动打开chrome<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt; window.navigator.webdriver</span><br><span class="line">&lt; undefined</span><br></pre></td></tr></table></figure></li>
+<li>selenium打开chrome<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&gt; window.navigator.webdriver</span><br><span class="line">&lt; true</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<p>看来这个问题却是是存在的，至于网站有没有做这个监测，可以看一下js代码。很多资料都是用mitmproxy屏蔽js代码来绕过监测，实现起来也比较麻烦，不过对于chrome浏览器来说，设置成开发者模式就可以很轻松的解决，只需要一行代码</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">options.add_experimental_option(<span class="string">'excludeSwitches'</span>, [<span class="string">'enable-automation'</span>])</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-5-其他设置"><a href="#4-5-其他设置" class="headerlink" title="4.5 其他设置"></a>4.5 其他设置</h4><ul>
+<li>等待时间，超时时间<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">driver = webdriver.xxxx()</span><br><span class="line">driver.implicitly_wait(<span class="number">20</span>)</span><br><span class="line">driver.set_page_load_timeout(<span class="number">20</span>)</span><br></pre></td></tr></table></figure>
+implicitly_wait是页面等待时长，经过实际验证，如果实际页面x秒(x&lt;20)加载完成，则代码执行结束，否则页面继续等待加载至总时长（20秒）,才回执行后面的流程，<br>set_page_load_timeout是超时时间，如果不设置，在find_element方法招不到对应元素的时候程序会一直卡住，所以这个参数一定要设置。</li>
+</ul>
+<h2 id="5-元素解析"><a href="#5-元素解析" class="headerlink" title="5 元素解析"></a>5 元素解析</h2><p>推荐chrome插件xpath helper，鼠标往元素上一放就可以得到xpath，再也不用分析html层级了。本地开发调试时可以先关闭headless模式，可以直观看到页面数据</p>
+<h2 id="6-其他"><a href="#6-其他" class="headerlink" title="6 其他"></a>6 其他</h2><p>以上示例中，每次新建一个webdriver都会新建一个浏览器窗口，所以代码每次处理完毕之后记得关闭浏览器，否则开多了系统内存也扛不住了。</p>
+<h2 id="7-demo"><a href="#7-demo" class="headerlink" title="7 demo"></a>7 demo</h2><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> json</span><br><span class="line"><span class="keyword">import</span> time</span><br><span class="line"><span class="keyword">from</span> selenium <span class="keyword">import</span> webdriver</span><br><span class="line"><span class="keyword">from</span> selenium.common.exceptions <span class="keyword">import</span> NoSuchElementException, TimeoutException</span><br><span class="line"><span class="keyword">from</span> webdriver_manager.chrome <span class="keyword">import</span> ChromeDriverManager</span><br><span class="line"><span class="keyword">from</span> fake_useragent <span class="keyword">import</span> UserAgent</span><br><span class="line"></span><br><span class="line">host = <span class="string">'xxx.xx.xxx.xx'</span></span><br><span class="line">port = <span class="string">'xx'</span></span><br><span class="line"></span><br><span class="line">options = webdriver.chrome.options.Options()</span><br><span class="line">options.add_argument(<span class="string">'--headless'</span>)</span><br><span class="line">options.add_argument(<span class="string">'--no-sandbox'</span>)</span><br><span class="line">options.add_argument(<span class="string">'--disable-gpu'</span>)</span><br><span class="line"><span class="comment"># 1允许所有图片；2阻止所有图片；3阻止第三方服务器图片</span></span><br><span class="line">options.add_experimental_option(<span class="string">"prefs"</span>, &#123;</span><br><span class="line">    <span class="string">"profile.managed_default_content_settings.images"</span>: <span class="number">2</span>,</span><br><span class="line">&#125;)</span><br><span class="line">options.add_argument(<span class="string">f'user-agent=<span class="subst">&#123;UserAgent().chrome&#125;</span>'</span>)</span><br><span class="line"><span class="comment"># 开发者模式</span></span><br><span class="line">options.add_experimental_option(<span class="string">'excludeSwitches'</span>, [<span class="string">'enable-automation'</span>])</span><br><span class="line"></span><br><span class="line"><span class="comment"># 添加代理服务器信息</span></span><br><span class="line">options.add_argument(<span class="string">f'--proxy-server=http://<span class="subst">&#123;host&#125;</span>:<span class="subst">&#123;port&#125;</span>'</span>)</span><br><span class="line">driver = webdriver.Chrome(ChromeDriverManager().install(),</span><br><span class="line">                          chrome_options=options)</span><br><span class="line">driver.implicitly_wait(<span class="number">20</span>)</span><br><span class="line">driver.set_page_load_timeout(<span class="number">20</span>)  <span class="comment"># 一定要设置超时时间,否则element找不到会一直卡死</span></span><br><span class="line">data = &#123;&#125;</span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    driver.get(<span class="string">'http://httpbin.org/get?show_env=1'</span>)</span><br><span class="line">    pre = driver.find_element_by_xpath(<span class="string">"/html/body/pre"</span>).text</span><br><span class="line"><span class="keyword">except</span> NoSuchElementException <span class="keyword">as</span> e1:</span><br><span class="line">    print(<span class="string">f'error,browser page:<span class="subst">&#123;driver.title&#125;</span>'</span>)</span><br><span class="line"><span class="keyword">except</span> TimeoutException <span class="keyword">as</span> e2:</span><br><span class="line">    print(<span class="string">f'webdriver time out'</span>)</span><br><span class="line"><span class="keyword">else</span>:</span><br><span class="line">    data = json.loads(pre)</span><br><span class="line"><span class="keyword">finally</span>:</span><br><span class="line">    <span class="comment">#driver.delete_all_cookies()  # 清除浏览器cookie缓存</span></span><br><span class="line">    driver.quit()</span><br><span class="line"></span><br><span class="line">print(data)</span><br></pre></td></tr></table></figure>
+
+
+                </article>
+                <ul class="tags-postTags">
+                    
+                    <li>
+                        <a href="/tags/%E7%88%AC%E8%99%AB-python/" rel="tag"># 爬虫,python</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    <nav id="gobottom" class="pagination">
+        
+        <span class="prev-next-post">·</span>
+        
+        <a class="next-post" title="Django自定义中间件" href="/2019/11/16/django-mid/">
+            Django自定义中间件 →
+        </a>
+        
+    </nav>
+
+    
+    <div class="inner">
+        <div id="comment"></div>
+    </div>
+    
+</div>
+
+<div class="toc-bar">
+    <div class="toc-btn-bar">
+        <a href="#site-main" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M793.024 710.272a32 32 0 1 0 45.952-44.544l-310.304-320a32 32 0 0 0-46.4 0.48l-297.696 320a32 32 0 0 0 46.848 43.584l274.752-295.328 286.848 295.808z"/></svg>
+        </a>
+        <div class="toc-btn toc-switch">
+            <svg class="toc-open" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M779.776 480h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M779.776 672h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M256 288a32 32 0 1 0 0 64 32 32 0 0 0 0-64M392.576 352h387.2a32 32 0 0 0 0-64h-387.2a32 32 0 0 0 0 64M256 480a32 32 0 1 0 0 64 32 32 0 0 0 0-64M256 672a32 32 0 1 0 0 64 32 32 0 0 0 0-64"/></svg>
+            <svg class="toc-close hide" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M512 960c-247.039484 0-448-200.960516-448-448S264.960516 64 512 64 960 264.960516 960 512 759.039484 960 512 960zM512 128.287273c-211.584464 0-383.712727 172.128262-383.712727 383.712727 0 211.551781 172.128262 383.712727 383.712727 383.712727 211.551781 0 383.712727-172.159226 383.712727-383.712727C895.712727 300.415536 723.551781 128.287273 512 128.287273z"/><path d="M557.05545 513.376159l138.367639-136.864185c12.576374-12.416396 12.672705-32.671738 0.25631-45.248112s-32.704421-12.672705-45.248112-0.25631l-138.560301 137.024163-136.447897-136.864185c-12.512727-12.512727-32.735385-12.576374-45.248112-0.063647-12.512727 12.480043-12.54369 32.735385-0.063647 45.248112l136.255235 136.671523-137.376804 135.904314c-12.576374 12.447359-12.672705 32.671738-0.25631 45.248112 6.271845 6.335493 14.496116 9.504099 22.751351 9.504099 8.12794 0 16.25588-3.103239 22.496761-9.247789l137.567746-136.064292 138.687596 139.136568c6.240882 6.271845 14.432469 9.407768 22.65674 9.407768 8.191587 0 16.352211-3.135923 22.591372-9.34412 12.512727-12.480043 12.54369-32.704421 0.063647-45.248112L557.05545 513.376159z"/></svg>
+        </div>
+        <a href="#gobottom" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M231.424 346.208a32 32 0 0 0-46.848 43.584l297.696 320a32 32 0 0 0 46.4 0.48l310.304-320a32 32 0 1 0-45.952-44.544l-286.848 295.808-274.752-295.36z"/></svg>
+        </a>
+    </div>
+    <div class="toc-main">
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-前言"><span class="toc-text">1 前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-环境搭建"><span class="toc-text">2 环境搭建</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#2-1-chrome"><span class="toc-text">2.1 chrome</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-2-firefox"><span class="toc-text">2.2 firefox</span></a></li></ol></li></ol><li class="toc-item toc-level-2"><a class="toc-link" href="#3-IP代理"><span class="toc-text">3 IP代理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#3-1-设置代理"><span class="toc-text">3.1 设置代理</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-2-匿名ip检验"><span class="toc-text">3.2 匿名ip检验</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-webdriver设置"><span class="toc-text">4 webdriver设置</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#4-1-headlss模式"><span class="toc-text">4.1 headlss模式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-2-不加载图片"><span class="toc-text">4.2 不加载图片</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-3-设置user-agent"><span class="toc-text">4.3 设置user-agent</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-4-避免爬虫监测"><span class="toc-text">4.4 避免爬虫监测</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-5-其他设置"><span class="toc-text">4.5 其他设置</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-元素解析"><span class="toc-text">5 元素解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-其他"><span class="toc-text">6 其他</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-demo"><span class="toc-text">7 demo</span></a></li>
+    </div>
+</div>
+
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+	</div>
+	
+
+
+<aside class="read-next outer">
+    <div class="inner">
+        <div class="read-next-feed">
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+  <header class="read-next-card-header">
+    <small class="read-next-card-header-sitetitle">&mdash; chengshicheng &mdash;</small>
+    <h3 class="read-next-card-header-title">最新文章</h3>
+  </header>
+  <div class="read-next-divider">
+    <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24">
+      <path d="M13 14.5s2 3 5 3 5.5-2.463 5.5-5.5S21 6.5 18 6.5c-5 0-7 11-12 11C2.962 17.5.5 15.037.5 12S3 6.5 6 6.5s4.5 3.5 4.5 3.5"/>
+    </svg>
+  </div>
+  <div class="read-next-card-content">
+    <ul>
+      
+      
+      
+      <li>
+        <a href="/2019/12/15/spider-summary/">selenium爬虫总结</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/11/16/django-mid/">Django自定义中间件</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/09/21/ctypes-struct/">python网络通信：ctypes和struct使用总结</a>
+      </li>
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+    </ul>
+  </div>
+  <footer class="read-next-card-footer">
+    <a href="/archives">  MORE  → </a>
+  </footer>
+</article>
+
+            
+            
+            
+
+
+            
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+	<header class="read-next-card-header tagcloud-card">
+		<h3 class="read-next-card-header-title">标签云</h3>
+	</header>
+	<div class="read-next-card-content-ext">
+		<a href="/tags/Linux/" style="font-size: 14px;">Linux</a> <a href="/tags/django/" style="font-size: 14px;">django</a> <a href="/tags/gcc/" style="font-size: 14px;">gcc</a> <a href="/tags/mongo/" style="font-size: 19px;">mongo</a> <a href="/tags/python/" style="font-size: 24px;">python</a> <a href="/tags/so/" style="font-size: 14px;">so</a> <a href="/tags/%E7%88%AC%E8%99%AB-python/" style="font-size: 14px;">爬虫,python</a>
+	</div>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+	
+
+
+
+
+<div id="search" class="search-overlay">
+    <div class="search-form">
+        
+        <div class="search-overlay-logo">
+        	<img src="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132" alt="chengshicheng">
+        </div>
+        
+        <input id="local-search-input" class="search-input" type="text" name="search" placeholder="搜索 ...">
+        <a class="search-overlay-close" href="#"></a>
+    </div>
+    <div id="local-search-result"></div>
+</div>
+
+<footer class="site-footer outer">
+	<div class="site-footer-content inner">
+		<div class="copyright">
+			<a href="/" title="chengshicheng">chengshicheng &copy; 2019</a>
+			
+				
+			        <span hidden="true" id="/2019/12/15/spider-summary/" class="leancloud-visitors" data-flag-title="selenium爬虫总结">
+			            <span>阅读量 </span>
+			            <span class="leancloud-visitors-count">0</span>
+			        </span>
+	    		
+    		
+		</div>
+		<nav class="site-footer-nav">
+			
+			<a href="https://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a>
+			<a href="https://github.com/xzhih/hexo-theme-casper" title="Casper" target="_blank" rel="noopener">Casper</a>
+		</nav>
+	</div>
+</footer>
+	
+
+
+<script>
+    if(window.navigator && navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister()
+            }
+        })
+    }
+</script>
+
+
+<script id="scriptLoad" src="/js/allinone.min.js" async></script>
+
+
+<script>
+    document.getElementById('scriptLoad').addEventListener('load', function () {
+        
+        
+            var bLazy = new Blazy();
+        
+
+        
+        
+
+        
+        
+        
+            searchFunc("/");
+        
+        
+    })
+</script>
+
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+
+
+<script id="valineScript" src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+<script>
+    document.getElementById('valineScript').addEventListener("load", function() {
+        new Valine({
+            el: '#comment' ,
+            verify: false,
+            notify: false,
+            appId: '',
+            appKey: '',
+            placeholder: 'Just go go',
+            pageSize: 10,
+            avatar: 'mm',
+            visitor: true
+        })
+    });
+</script>
+
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        var bp = document.createElement('script');
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        }
+        else {
+            bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+        }
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(bp, s);
+    });
+</script>
+
+
+</body>
+</html>
