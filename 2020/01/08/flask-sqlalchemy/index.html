@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="preconnect" href="//www.googletagmanager.com">
+	<link rel="preconnect" href="//zz.bdstatic.com">
+	<link rel="preconnect" href="//sp0.baidu.com">
+	<link rel="preconnect" href="//www.google-analytics.com">
+	<link rel="preconnect" href="//cdn1.lncld.net">
+	<link rel="preconnect" href="//unpkg.com">
+	<link rel="preconnect" href="//app-router.leancloud.cn">
+	<link rel="preconnect" href="//9qpuwspm.api.lncld.net">
+	<link rel="preconnect" href="//gravatar.loli.net">
+
+	<title>Flask 开发之Model：Flask-SQLAlchemy | chengshicheng</title>
+
+	<meta name="HandheldFriendly" content="True">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+	<meta name="generator" content="hexo">
+	<meta name="author" content="chengshicheng">
+	<meta name="description" content>
+
+	
+	<meta name="keywords" content>
+	
+
+	
+	<link rel="shortcut icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	<link rel="apple-touch-icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	
+
+	
+	<meta name="theme-color" content="#3c484e">
+	<meta name="msapplication-TileColor" content="#3c484e">
+	
+
+	
+
+	
+
+	<meta property="og:site_name" content="chengshicheng">
+	<meta property="og:type" content="article">
+	<meta property="og:title" content="Flask 开发之Model：Flask-SQLAlchemy | chengshicheng">
+	<meta property="og:description" content>
+	<meta property="og:url" content="https://chengshicheng.site/2020/01/08/flask-sqlalchemy/">
+
+	
+	<meta property="article:published_time" content="2020-01-08T21:01:00+08:00"> 
+	<meta property="article:author" content="chengshicheng">
+	<meta property="article:published_first" content="chengshicheng, /2020/01/08/flask-sqlalchemy/">
+	
+
+	
+	
+	<link rel="stylesheet" href="/css/allinonecss.min.css">
+
+	
+	
+	
+</head>
+<body class="post-template">
+	<div class="site-wrapper">
+		
+
+
+
+
+<header class="site-header post-site-header outer">
+    <div class="inner">
+        
+<nav class="site-nav"> 
+    <div class="site-nav-left">
+        <ul class="nav">
+            <li>
+                
+                <a href="/" title="Home">HOME</a>
+                
+            </li>
+            
+            
+            <li>
+                <a href="/about" title="ABOUT">ABOUT</a>
+            </li>
+            
+            <li>
+                <a href="/archives" title="ARCHIVES">ARCHIVES</a>
+            </li>
+            
+            
+        </ul> 
+    </div>
+    
+    <div class="search-button-area">
+        <a href="#search" class="search-button">Search ...</a>
+    </div>
+     
+    <div class="site-nav-right">
+        
+        <a href="#search" class="search-button">Search ...</a>
+         
+        
+<div class="social-links">
+    
+    
+    
+    
+    
+    
+    
+</div>
+    </div>
+</nav>
+    </div>
+</header>
+
+
+<div id="site-main" class="site-main outer" role="main">
+    <div class="inner">
+        <header class="post-full-header">
+            <div class="post-full-meta">
+                <time class="post-full-meta-date" datetime="2020-01-08T13:57:41.000Z">
+                    2020-01-8
+                </time>
+                
+                <span class="date-divider">/</span>
+                
+                
+            </div>
+            <h1 class="post-full-title">Flask 开发之Model：Flask-SQLAlchemy</h1>
+        </header>
+        <div class="post-full ">
+            
+            <figure class="post-full-image" style="background-image: url(https://cdn.pixabay.com/photo/2015/09/05/22/28/bodybuilder-925770_1280.jpg)">
+            </figure>
+            
+            <div class="post-full-content">
+                <article id="photoswipe" class="markdown-body">
+                    <h3 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h3><p>由于日常工作中经常在<code>Flask</code>和<code>Django</code>切换，不同的ORM框架属性区别还是有点大的，在<code>Flask</code>中使用了常见的<code>SQLAlchemy</code>ORM框架，而<code>SQLAlchemy</code>的官方文档又相当简洁，仅仅提供了基本的增删改查操作实例。语法倒是不复杂，只是长时间不接触的话，一时半会还真想不起来，因此在这里总结记录一下。</p>
+<p>本文使用<a href="https://pypi.org/project/Flask-SQLAlchemy/" target="_blank" rel="noopener"><code>Flask-SQLAlchemy</code></a>，和<code>SQLAlchemy</code>相比语法上稍有不同，具体不再赘述。</p>
+<h4 id="基础操作"><a href="#基础操作" class="headerlink" title="基础操作"></a>基础操作</h4><h5 id="查询"><a href="#查询" class="headerlink" title="查询"></a>查询</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 根据主键查询</span></span><br><span class="line">User.query.get(<span class="number">2</span>)</span><br><span class="line">User.query.get_or_404(<span class="number">2</span>)</span><br><span class="line">User.query.filter(User.phone==<span class="string">'1316418xxxx'</span>).all()</span><br><span class="line">User.query.filter(User.phone==<span class="string">'1316418xxxx'</span>).first()</span><br><span class="line">User.query.filter(User.phone==<span class="string">'1316418xxxx'</span>).one()</span><br><span class="line">User.query.filter(User.phone==<span class="string">'1316418xxxx'</span>).one_or_none()</span><br><span class="line"></span><br><span class="line"><span class="comment"># first()返回的是tuple格式</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>User.query.with_entities(User.username,User.phone).filter(User.phone==<span class="string">'1316418xxxx'</span>).first()</span><br><span class="line">(<span class="string">'chengshicheng'</span>, <span class="string">'1316418xxxx'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># scalar()返回唯一个结果的第一个元素</span></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>User.query.with_entities(User.username,User.phone).filter(User.phone==<span class="string">'1316418xxxx'</span>).scalar()</span><br><span class="line"><span class="string">'chengshicheng'</span></span><br></pre></td></tr></table></figure>
+<p>需要注意的是<code>one()</code>和<code>scalar()</code>方法会抛出<code>MultipleResultsFound</code>和<code>NoResultFound</code>的异常，<code>one_or_none()</code>方法会抛出<code>MultipleResultsFound</code>异常。使用的时候需要注意捕捉相关异常。</p>
+<h5 id="修改"><a href="#修改" class="headerlink" title="修改"></a>修改</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 修改model</span></span><br><span class="line">u = User.query.get(<span class="number">2</span>)</span><br><span class="line">u.phone = <span class="string">'1327777xxxx'</span></span><br><span class="line">db.session.commit()</span><br><span class="line"></span><br><span class="line"><span class="comment"># update</span></span><br><span class="line">User.query.filter(User.phone == <span class="string">'1316418xxxx'</span>).update(&#123;<span class="string">'phone'</span>:<span class="string">'1327777xxxx'</span>&#125;)</span><br><span class="line">db.session.comm</span><br></pre></td></tr></table></figure>
+
+<h5 id="删除"><a href="#删除" class="headerlink" title="删除"></a>删除</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 删除model</span></span><br><span class="line">u = User.query.get(<span class="number">2</span>)</span><br><span class="line">db.session.delete(u)</span><br><span class="line">db.session.commit()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 使用delete()</span></span><br><span class="line">User.query.filter(User.phone==<span class="string">'1316418xxxx'</span>).delete(synchronize_session=<span class="literal">False</span>)</span><br><span class="line">db.session.commit()</span><br></pre></td></tr></table></figure>
+<p>批量数据删除时，使用query.delete()可以绕过ORM体系，能够显著提升性能。</p>
+<p>synchronize_session  选择从会话中操作匹配对象的策略：</p>
+<ul>
+<li><p>False </p>
+<p>  不同步session，直接执行删除操作。，如果被删除的 objects 已经在 session 中存在，在 session commit 或者 expire_all 之前，这些被删除的对象都存在 session 中。可能会导致获取被删除 objects 时出错。不同步可能会导致获取被删除 objects 时出错</p>
+</li>
+<li><p>‘fetch’    </p>
+<p>  删除之前从 db 中匹配被删除的对象并保存在 session 中，然后再从 session 中删除</p>
+</li>
+<li><p>‘evaluate’   </p>
+<p>  默认值。根据当前的 query criteria 扫描 session 中的 objects，如果不能正确执行则抛出错误</p>
+</li>
+</ul>
+<h4 id="复杂查询"><a href="#复杂查询" class="headerlink" title="复杂查询"></a>复杂查询</h4><h5 id="filter过滤"><a href="#filter过滤" class="headerlink" title="filter过滤"></a>filter过滤</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># equal</span></span><br><span class="line">User.query.filter(User.phone == <span class="string">'1316418xxxx'</span>).first()</span><br><span class="line"></span><br><span class="line"><span class="comment"># not equal</span></span><br><span class="line">User.query.filter(User.phone != <span class="string">'1316418xxxx'</span>).first()</span><br><span class="line">User.query.filter(not_(User.phone == <span class="string">'1316418xxxx'</span>)).first()</span><br><span class="line"></span><br><span class="line"><span class="comment"># in/not in</span></span><br><span class="line">User.query.filter(User.id.in_([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])).all()</span><br><span class="line">User.query.filter(User.id.notin_([<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>])).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># None 判断</span></span><br><span class="line">User.query.filter(User.phone.is_(<span class="literal">None</span>)).all()</span><br><span class="line">User.query.filter(User.phone.isnot(<span class="literal">None</span>)).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># like/ilike</span></span><br><span class="line">User.query.filter(User.name.like(<span class="string">'%CHENG%'</span>)).all()</span><br><span class="line">User.query.filter(User.name.ilike(<span class="string">'%cheng%'</span>)).all() <span class="comment">#ilike(不区分大小写)</span></span><br><span class="line">User.query.filter(User.phone.notlike(<span class="string">'%CHENG%'</span>)).all()</span><br><span class="line">User.query.filter(User.phone.notilike(<span class="string">'%cheng%'</span>)).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 文本匹配（都可以用like实现）</span></span><br><span class="line">User.query.filter(User.phone.startwith(<span class="string">'1316418'</span>)).all()</span><br><span class="line">User.query.filter(User.phone.endwith(<span class="string">'xxxx'</span>)).all()</span><br><span class="line">User.query.filter(User.phone.contains(<span class="string">'6418'</span>)).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># and_/or_/not_ 分别对应 &amp; | ~ 运算符</span></span><br><span class="line">User.query.filter(User.age &lt; <span class="number">18</span>).filter(User.register_at &lt; <span class="string">'2019-01-01'</span>).all()</span><br><span class="line">User.query.filter(User.age &lt; <span class="number">18</span>, User.register_at &lt; <span class="string">'2019-01-01'</span>).all()</span><br><span class="line">User.query.filter(and_(User.age &lt; <span class="number">18</span>, User.register_at &lt; <span class="string">'2019-01-01'</span>)).all()</span><br><span class="line">User.query.filter((User.age &lt; <span class="number">18</span>) &amp; (User.register_at &lt; <span class="string">'2019-01-01'</span>)).all()</span><br><span class="line"></span><br><span class="line">User.query.filter(or_(User.age &lt; <span class="number">18</span>, User.age &gt; <span class="number">60</span>)</span><br><span class="line">User.query.filter((User.age &lt; <span class="number">18</span>) | (User.age &gt; <span class="number">60</span>))</span><br><span class="line"></span><br><span class="line">User.query.filter(not_(User.age &lt; <span class="number">18</span>)).all()</span><br><span class="line">User.query.filter(~(User.age &lt; <span class="number">18</span>)).all()</span><br><span class="line"></span><br><span class="line"><span class="comment">#组合查询</span></span><br><span class="line">Order.query.filter(Order.created_at &gt; <span class="string">'2019-01-01'</span>, order.shop_id= <span class="number">1</span>,</span><br><span class="line">                not_(Order.status=<span class="string">'unpaid'</span>),</span><br><span class="line">                or_(Order.type==<span class="number">3</span>, Order.type==<span class="number">7</span>)).all()</span><br></pre></td></tr></table></figure>
+
+<h5 id="limit-offset-slice"><a href="#limit-offset-slice" class="headerlink" title="limit offset slice"></a>limit offset slice</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">User.query.offset(<span class="number">5</span>).limit(<span class="number">10</span>).all()</span><br><span class="line">User.query.slice(<span class="number">0</span>,<span class="number">2</span>).all()</span><br><span class="line">User.query[<span class="number">0</span>:<span class="number">2</span>]</span><br><span class="line">User.query[<span class="number">0</span>]</span><br></pre></td></tr></table></figure>
+
+<h5 id="order-by-排序"><a href="#order-by-排序" class="headerlink" title="order_by 排序"></a>order_by 排序</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sqlalchemy.sql <span class="keyword">import</span> text</span><br><span class="line"></span><br><span class="line">User.query.order_by(User.id.desc()).all()</span><br><span class="line">User.query.order_by(text(<span class="string">'-id'</span>)).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># id逆序，参考slice操作</span></span><br><span class="line">User.query[::<span class="number">-1</span>]</span><br><span class="line"></span><br><span class="line">User.query.order_by(User.id.asc()).all()</span><br><span class="line">User.query.order_by(text(<span class="string">'id'</span>)).all()</span><br></pre></td></tr></table></figure>
+
+<h5 id="聚合"><a href="#聚合" class="headerlink" title="聚合"></a>聚合</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">func.count:统计行的数量</span><br><span class="line">func.avg:求平均值</span><br><span class="line">func.max:求最大值</span><br><span class="line">func.min:求最小值</span><br><span class="line">func.sum:求和</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用户的平均年龄和最大年龄</span></span><br><span class="line"><span class="keyword">from</span> sqlalchemy <span class="keyword">import</span> func</span><br><span class="line">User.query.with_entities(func.avg(User.age),func.max(User.age)).first()</span><br></pre></td></tr></table></figure>
+
+<h5 id="group-by"><a href="#group-by" class="headerlink" title="group_by"></a>group_by</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sqlalchemy <span class="keyword">import</span> func</span><br><span class="line"></span><br><span class="line"><span class="comment">#group_by 按年龄分组统计人数</span></span><br><span class="line">User.query.with_entities(User.age,func.count()).group_by(User.age).all()</span><br><span class="line"></span><br><span class="line"><span class="comment">#having 分组后结果再过滤</span></span><br><span class="line">User.query.with_entities(User.age,func.count()).group_by(User.age).having(User.age&gt;<span class="number">18</span>).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># group_concat拼接</span></span><br><span class="line">User.query.with_entities(User.age,func.group_concat(User.id),func.count()).group_by(User.age).all()</span><br></pre></td></tr></table></figure>
+<h5 id="join-联表查询"><a href="#join-联表查询" class="headerlink" title="join 联表查询"></a>join 联表查询</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment"># 默认外键关联</span></span><br><span class="line">Order.query.filter(Order.status=<span class="string">'paid'</span>,Order.created_at &gt; <span class="string">'2019-01-01'</span>)</span><br><span class="line">    .join(User, user.phone == <span class="string">'1316418xxxx'</span>)</span><br><span class="line"><span class="comment"># 指定外键关联</span></span><br><span class="line">Order.query.filter(Order.status=<span class="string">'paid'</span>,Order.created_at &gt; <span class="string">'2019-01-01'</span>)</span><br><span class="line">    .join(User, and_(User.id == Order.user_id, user.phone == <span class="string">'1316418xxxx'</span>))</span><br></pre></td></tr></table></figure>
+<h5 id="subquery-子查询"><a href="#subquery-子查询" class="headerlink" title="subquery 子查询"></a>subquery 子查询</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>subq  = User.query.with_entities(User.id).filter(User.phone==<span class="string">'1316418xxxx'</span>).subquery()</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>Order.query.filter(Order.created_by == subq.c.id).all()</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>print(Order.query.filter(Order.created_by == a.c.id))</span><br><span class="line">SELECT orders.id AS orders_id, ...</span><br><span class="line">FROM orders, </span><br><span class="line">(SELECT users.id AS id FROM users WHERE users.phone = %s) AS anon_1 </span><br><span class="line">WHERE orders.created_by = anon_1.id</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>u_ids = User.query.with_entities(User.id).filter(User.phone==<span class="string">'1316418xxxx'</span>)</span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>print(Order.query.filter(Order.created_by.in_(u_ids.subquery())))</span><br><span class="line">SELECT orders.id AS orders_id, ...</span><br><span class="line">FROM orders </span><br><span class="line">WHERE orders.created_by IN (SELECT users.id </span><br><span class="line">FROM users </span><br><span class="line">WHERE users.phone = %s)</span><br></pre></td></tr></table></figure>
+
+<h5 id="label-别名"><a href="#label-别名" class="headerlink" title="label 别名"></a>label 别名</h5><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">User.query.with_entities((User.username + <span class="string">'_'</span> + User.phone).label(<span class="string">'userinfo'</span>)).all()</span><br><span class="line">User.query.with_entities(User.id.label(<span class="string">'user_id'</span>)).order_by(text(<span class="string">'-user_id'</span>)).all()</span><br><span class="line"></span><br><span class="line">user_id = User.id.label(<span class="string">'user_id'</span>)</span><br><span class="line">User.query.filter(user_id&gt;<span class="number">4</span>).order_by(user_id.desc()).all()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 按月统计订单数量(过去一年内的)</span></span><br><span class="line">a= Order.query.with_entities(func.date_format(Order.created_date,<span class="string">'%Y-%m'</span>).label(<span class="string">'month'</span>),func.count()).group_by(<span class="string">'month'</span>).order_by(<span class="string">'month'</span>).limit(<span class="number">12</span>).all()</span><br><span class="line"></span><br><span class="line"><span class="meta">&gt;&gt;&gt; </span>print(a)</span><br><span class="line">SELECT date_format(orders.created_date, %s) AS date, count(orders.id) AS count_1 </span><br><span class="line">FROM orders GROUP BY date</span><br></pre></td></tr></table></figure>
+
+<p>目前用的比较多的就是这些，应该满足大部分情况下的查询，后续会持续更新。如有特别复杂的情况，也可以直接执行sql语句。</p>
+
+                </article>
+                <ul class="tags-postTags">
+                    
+                    <li>
+                        <a href="/tags/Flask/" rel="tag"># Flask</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/SQLAlchemy/" rel="tag"># SQLAlchemy</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    <nav id="gobottom" class="pagination">
+        
+        <span class="prev-next-post">·</span>
+        
+        <a class="next-post" title="Selenium 爬虫总结" href="/2019/12/15/spider-summary/">
+            Selenium 爬虫总结 →
+        </a>
+        
+    </nav>
+
+    
+    <div class="inner">
+        <div id="comment"></div>
+    </div>
+    
+</div>
+
+<div class="toc-bar">
+    <div class="toc-btn-bar">
+        <a href="#site-main" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M793.024 710.272a32 32 0 1 0 45.952-44.544l-310.304-320a32 32 0 0 0-46.4 0.48l-297.696 320a32 32 0 0 0 46.848 43.584l274.752-295.328 286.848 295.808z"/></svg>
+        </a>
+        <div class="toc-btn toc-switch">
+            <svg class="toc-open" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M779.776 480h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M779.776 672h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M256 288a32 32 0 1 0 0 64 32 32 0 0 0 0-64M392.576 352h387.2a32 32 0 0 0 0-64h-387.2a32 32 0 0 0 0 64M256 480a32 32 0 1 0 0 64 32 32 0 0 0 0-64M256 672a32 32 0 1 0 0 64 32 32 0 0 0 0-64"/></svg>
+            <svg class="toc-close hide" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M512 960c-247.039484 0-448-200.960516-448-448S264.960516 64 512 64 960 264.960516 960 512 759.039484 960 512 960zM512 128.287273c-211.584464 0-383.712727 172.128262-383.712727 383.712727 0 211.551781 172.128262 383.712727 383.712727 383.712727 211.551781 0 383.712727-172.159226 383.712727-383.712727C895.712727 300.415536 723.551781 128.287273 512 128.287273z"/><path d="M557.05545 513.376159l138.367639-136.864185c12.576374-12.416396 12.672705-32.671738 0.25631-45.248112s-32.704421-12.672705-45.248112-0.25631l-138.560301 137.024163-136.447897-136.864185c-12.512727-12.512727-32.735385-12.576374-45.248112-0.063647-12.512727 12.480043-12.54369 32.735385-0.063647 45.248112l136.255235 136.671523-137.376804 135.904314c-12.576374 12.447359-12.672705 32.671738-0.25631 45.248112 6.271845 6.335493 14.496116 9.504099 22.751351 9.504099 8.12794 0 16.25588-3.103239 22.496761-9.247789l137.567746-136.064292 138.687596 139.136568c6.240882 6.271845 14.432469 9.407768 22.65674 9.407768 8.191587 0 16.352211-3.135923 22.591372-9.34412 12.512727-12.480043 12.54369-32.704421 0.063647-45.248112L557.05545 513.376159z"/></svg>
+        </div>
+        <a href="#gobottom" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M231.424 346.208a32 32 0 0 0-46.848 43.584l297.696 320a32 32 0 0 0 46.4 0.48l310.304-320a32 32 0 1 0-45.952-44.544l-286.848 295.808-274.752-295.36z"/></svg>
+        </a>
+    </div>
+    <div class="toc-main">
+        <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#前言"><span class="toc-text">前言</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#基础操作"><span class="toc-text">基础操作</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#查询"><span class="toc-text">查询</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#修改"><span class="toc-text">修改</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#删除"><span class="toc-text">删除</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#复杂查询"><span class="toc-text">复杂查询</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#filter过滤"><span class="toc-text">filter过滤</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#limit-offset-slice"><span class="toc-text">limit offset slice</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#order-by-排序"><span class="toc-text">order_by 排序</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#聚合"><span class="toc-text">聚合</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#group-by"><span class="toc-text">group_by</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#join-联表查询"><span class="toc-text">join 联表查询</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#subquery-子查询"><span class="toc-text">subquery 子查询</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#label-别名"><span class="toc-text">label 别名</span></a></li></ol></li></ol></li></ol>
+    </div>
+</div>
+
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+	</div>
+	
+
+
+<aside class="read-next outer">
+    <div class="inner">
+        <div class="read-next-feed">
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+  <header class="read-next-card-header">
+    <small class="read-next-card-header-sitetitle">&mdash; chengshicheng &mdash;</small>
+    <h3 class="read-next-card-header-title">最新文章</h3>
+  </header>
+  <div class="read-next-divider">
+    <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24">
+      <path d="M13 14.5s2 3 5 3 5.5-2.463 5.5-5.5S21 6.5 18 6.5c-5 0-7 11-12 11C2.962 17.5.5 15.037.5 12S3 6.5 6 6.5s4.5 3.5 4.5 3.5"/>
+    </svg>
+  </div>
+  <div class="read-next-card-content">
+    <ul>
+      
+      
+      
+      <li>
+        <a href="/2020/01/08/flask-sqlalchemy/">Flask 开发之Model：Flask-SQLAlchemy</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/12/15/spider-summary/">Selenium 爬虫总结</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2019/11/16/django-mid/">Django自定义中间件</a>
+      </li>
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+    </ul>
+  </div>
+  <footer class="read-next-card-footer">
+    <a href="/archives">  MORE  → </a>
+  </footer>
+</article>
+
+            
+            
+            
+
+
+            
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+	<header class="read-next-card-header tagcloud-card">
+		<h3 class="read-next-card-header-title">标签云</h3>
+	</header>
+	<div class="read-next-card-content-ext">
+		<a href="/tags/Flask/" style="font-size: 14px;">Flask</a> <a href="/tags/Linux/" style="font-size: 14px;">Linux</a> <a href="/tags/SQLAlchemy/" style="font-size: 14px;">SQLAlchemy</a> <a href="/tags/django/" style="font-size: 14px;">django</a> <a href="/tags/gcc/" style="font-size: 14px;">gcc</a> <a href="/tags/mongo/" style="font-size: 19px;">mongo</a> <a href="/tags/python/" style="font-size: 24px;">python</a> <a href="/tags/so/" style="font-size: 14px;">so</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 14px;">爬虫</a>
+	</div>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+	
+
+
+
+
+<div id="search" class="search-overlay">
+    <div class="search-form">
+        
+        <div class="search-overlay-logo">
+        	<img src="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132" alt="chengshicheng">
+        </div>
+        
+        <input id="local-search-input" class="search-input" type="text" name="search" placeholder="搜索 ...">
+        <a class="search-overlay-close" href="#"></a>
+    </div>
+    <div id="local-search-result"></div>
+</div>
+
+<footer class="site-footer outer">
+	<div class="site-footer-content inner">
+		<div class="copyright">
+			<a href="/" title="chengshicheng">chengshicheng &copy; 2020</a>
+			
+				
+			        <span hidden="true" id="/2020/01/08/flask-sqlalchemy/" class="leancloud-visitors" data-flag-title="Flask 开发之Model：Flask-SQLAlchemy">
+			            <span>阅读量 </span>
+			            <span class="leancloud-visitors-count">0</span>
+			        </span>
+	    		
+    		
+		</div>
+		<nav class="site-footer-nav">
+			
+			<a href="https://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a>
+			<a href="https://github.com/xzhih/hexo-theme-casper" title="Casper" target="_blank" rel="noopener">Casper</a>
+		</nav>
+	</div>
+</footer>
+	
+
+
+<script>
+    if(window.navigator && navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister()
+            }
+        })
+    }
+</script>
+
+
+<script id="scriptLoad" src="/js/allinone.min.js" async></script>
+
+
+<script>
+    document.getElementById('scriptLoad').addEventListener('load', function () {
+        
+        
+            var bLazy = new Blazy();
+        
+
+        
+        
+
+        
+        
+        
+            searchFunc("/");
+        
+        
+    })
+</script>
+
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+
+
+<script id="valineScript" src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+<script>
+    document.getElementById('valineScript').addEventListener("load", function() {
+        new Valine({
+            el: '#comment' ,
+            verify: false,
+            notify: false,
+            appId: '',
+            appKey: '',
+            placeholder: 'Just go go',
+            pageSize: 10,
+            avatar: 'mm',
+            visitor: true
+        })
+    });
+</script>
+
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        var bp = document.createElement('script');
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        }
+        else {
+            bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+        }
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(bp, s);
+    });
+</script>
+
+
+</body>
+</html>
