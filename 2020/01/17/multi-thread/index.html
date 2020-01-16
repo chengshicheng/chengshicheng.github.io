@@ -20,7 +20,7 @@
 	<link rel="preconnect" href="//9qpuwspm.api.lncld.net">
 	<link rel="preconnect" href="//gravatar.loli.net">
 
-	<title>Hello World | chengshicheng</title>
+	<title>Python 多线程探究 | chengshicheng</title>
 
 	<meta name="HandheldFriendly" content="True">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
@@ -48,14 +48,14 @@
 
 	<meta property="og:site_name" content="chengshicheng">
 	<meta property="og:type" content="article">
-	<meta property="og:title" content="Hello World | chengshicheng">
+	<meta property="og:title" content="Python 多线程探究 | chengshicheng">
 	<meta property="og:description" content>
-	<meta property="og:url" content="https://chengshicheng.site/2019/08/20/hello-world/">
+	<meta property="og:url" content="https://chengshicheng.site/2020/01/17/multi-thread/">
 
 	
-	<meta property="article:published_time" content="2019-08-20T22:08:00+08:00"> 
+	<meta property="article:published_time" content="2020-01-17T00:01:00+08:00"> 
 	<meta property="article:author" content="chengshicheng">
-	<meta property="article:published_first" content="chengshicheng, /2019/08/20/hello-world/">
+	<meta property="article:published_first" content="chengshicheng, /2020/01/17/multi-thread/">
 	
 
 	
@@ -126,42 +126,66 @@
     <div class="inner">
         <header class="post-full-header">
             <div class="post-full-meta">
-                <time class="post-full-meta-date" datetime="2019-08-20T14:51:44.000Z">
-                    2019-08-20
+                <time class="post-full-meta-date" datetime="2020-01-16T16:57:09.000Z">
+                    2020-01-17
                 </time>
                 
                 <span class="date-divider">/</span>
                 
                 
             </div>
-            <h1 class="post-full-title">Hello World</h1>
+            <h1 class="post-full-title">Python 多线程探究</h1>
         </header>
         <div class="post-full ">
             
-            <figure class="post-full-image" style="background-image: url(https://w.wallhaven.cc/full/96/wallhaven-96688w.jpg)">
+            <figure class="post-full-image" style="background-image: url(https://cdn.pixabay.com/photo/2015/09/03/08/10/children-920131_1280.jpg)">
             </figure>
             
             <div class="post-full-content">
                 <article id="photoswipe" class="markdown-body">
-                    <p>Welcome to <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="noopener">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="noopener">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="noopener">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">"My New Post"</span></span><br></pre></td></tr></table></figure>
+                    <h1 id="Python-多线程探究"><a href="#Python-多线程探究" class="headerlink" title="Python 多线程探究"></a>Python 多线程探究</h1><h3 id="GIL锁"><a href="#GIL锁" class="headerlink" title="GIL锁"></a>GIL锁</h3><p>在介绍Python的多线程编程之前，需要想明确一个概念，Python中的多线程是一个假的多线程，在Python的原始解析器CPython中存在着全局解释器锁（Global Interpreter Lock，GIL），GIL在任何时候都确保只有一个Python线程执行，这个过程中会产生互斥锁来限制线程对共享资源的访问，直到解释器遇到I/O操作或者操作次数达到一定数目时才会释放GIL。</p>
+<h3 id="多线程性能测试"><a href="#多线程性能测试" class="headerlink" title="多线程性能测试"></a>多线程性能测试</h3><p>那么多线程性能表现如何？性能测试一下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> time, threading</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(n)</span>:</span></span><br><span class="line">    sum = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> sum &lt; n:</span><br><span class="line">        sum += <span class="number">1</span></span><br><span class="line">    print(<span class="string">f'sum:<span class="subst">&#123;sum&#125;</span>'</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</span><br><span class="line">    n = <span class="number">500000000</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">#  单线程</span></span><br><span class="line">    start = time.time()</span><br><span class="line">    add(n)</span><br><span class="line">    print(<span class="string">'run time1: %s  s'</span> % str(time.time() - start))</span><br><span class="line"></span><br><span class="line">    <span class="comment"># 多线程</span></span><br><span class="line">    start = time.time()</span><br><span class="line">    t1 = threading.Thread(target=add, args=[n // <span class="number">2</span>])</span><br><span class="line">    t2 = threading.Thread(target=add, args=[n // <span class="number">2</span>])</span><br><span class="line">    t1.start()</span><br><span class="line">    t2.start()</span><br><span class="line">    t1.join()</span><br><span class="line">    t2.join()</span><br><span class="line">    print(<span class="string">'run time2: %s s'</span> % str(time.time() - start))</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="noopener">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>执行结果</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sum:500000000</span><br><span class="line">run time1: 37.292006969451904 s</span><br><span class="line">sum:250000000</span><br><span class="line">sum:250000000</span><br><span class="line">run time2: 37.5808539390564 s</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="noopener">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>结果表明此处的多线程并没有什么性能提升，反而由于GIL的频繁设置和释放，性能可能还不如单线程。解释的通俗点，以上场景就像在食堂打饭，单线程的时候是一个阿姨负责一个窗口，多线程是一个阿姨负责两个窗口，可是多开的一个窗口，并没有提升工作效率。</p>
+<p>GIL是理解了，那么问题来了，多线程意义何在？还是上面那个例子，假设每个同学在打饭的时候，需要到窗口点菜，打菜的过程其实很快，但是有些同学这时候纠结症就犯了，看菜单花个半分钟，点菜纠结半分钟，阿姨表示很无奈，先去别的窗口招呼同学去了。这么一看，好像就比一个窗口要快很多了，感觉阿姨一个人招呼四五个窗口不成问题(´･ᆺ･`)</p>
+<p>接下来用延时（ 或者网络请求等耗时操作）来模拟同学们的拖延症，在add()函数中加一行代码<code>time.sleep(1)</code>:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> sum &lt; n:</span><br><span class="line">     time.sleep(<span class="number">1</span>)</span><br><span class="line">     sum += <span class="number">1</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="noopener">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>为了避免用时过长，把add()方法入参 n 改成20，运行结果如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">sum:<span class="number">20</span></span><br><span class="line">run time1: <span class="number">20.021007776260376</span> s</span><br><span class="line">sum:<span class="number">10</span></span><br><span class="line">sum:<span class="number">10</span></span><br><span class="line">run time2: <span class="number">10.010624170303345</span> s</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="noopener">Deployment</a></p>
+<p>运行结果令人欣慰，运行效率提升max，那么仅一行代码，多线程带来的性能提升为何如此之大？这里涉及到一对概念：CPU密集型、IO密集型。</p>
+<h3 id="什么是CPU密集型、I-O-密集型？"><a href="#什么是CPU密集型、I-O-密集型？" class="headerlink" title="什么是CPU密集型、I/O 密集型？"></a>什么是CPU密集型、I/O 密集型？</h3><p>来自 <a href="https://stackoverflow.com/questions/868568/what-do-the-terms-cpu-bound-and-i-o-bound-mean" target="_blank" rel="noopener">stackoverflow  What do the terms “CPU bound” and “I/O bound” mean?</a></p>
+<ul>
+<li><p>CPU密集型</p>
+<p>A program is CPU bound if it would go faster if the CPU were faster, i.e. it spends the majority of its time simply using the CPU (doing calculations). A program that computes new digits of π will typically be CPU-bound, it’s just crunching numbers.</p>
+<p>如果CPU变得更快时，程序运行得更快，则该程序是CPU密集型 ，程序的大部分时间都用于CPU（进行计算）。计算π的数值程序就是个典型的CPU密集型，它只用来计算数字。</p>
+</li>
+</ul>
+<ul>
+<li><p>I / O密集型</p>
+<p>A program is I/O bound if it would go faster if the I/O subsystem was faster. Which exact I/O system is meant can vary; I typically associate it with disk, but of course networking or communication in general is common too. A program that looks through a huge file for some data might become I/O bound, since the bottleneck is then the reading of the data from disk (actually, this example is perhaps kind of old-fashioned these days with hundreds of MB/s coming in from SSDs).</p>
+<p>如果I / O子系统更快，则程序运行得更快，则该程序是I / O密集型。确切的I / O系统的含义可能会有所不同。我通常将其与磁盘联系在一起，但是一般来说，在网络通信中也很常见。在大文件中查找数据的程序很可能是I/O 密集型，因为瓶颈是从磁盘读取数据（实际上，这个例子可能已经过时，因为SSD已经达到了数百MB/S的速度了）</p>
+</li>
+</ul>
+<h3 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h3><p>大部分任务都可以分为CPU密集型和I / O密集型。</p>
+<p>CPU密集型任务的特点是要进行大量的计算，消耗CPU资源，比如计算圆周率、对视频进行高清解码等等，全靠CPU的运算能力。这种计算密集型任务虽然也可以用多任务完成，但是任务越多，花在任务切换的时间就越多，CPU执行任务的效率就越低，所以，要最高效地利用CPU，计算密集型任务同时进行的数量应当等于CPU的核心数。</p>
+<p>CPU密集型任务由于主要消耗CPU资源，因此，代码运行效率至关重要。Python这样的脚本语言运行效率很低，完全不适合计算密集型任务。对于计算密集型任务，最好用C语言编写。</p>
+<p>第二种任务的类型是I / O密集型，涉及到网络、磁盘IO的任务都是IO密集型任务，这类任务的特点是CPU消耗很少，任务的大部分时间都在等待IO操作完成（因为IO的速度远远低于CPU和内存的速度）。对于I / O密集型任务，任务越多，CPU处于等待的时间就越短，CPU的效率相对会提高，但也有一个限度。常见的大部分任务都是IO密集型任务，比如Web应用。</p>
+<p>IO密集型任务执行期间，99%的时间都花在IO上，花在CPU上的时间很少，因此，用运行速度极快的C语言替换用Python这样运行速度极低的脚本语言，完全无法提升运行效率。对于IO密集型任务，最合适的语言就是开发效率高的语言，脚本语言是首选。</p>
+<p>总之，Python就不应该用来写CPU密集型的程序，毕竟运行效率实在太低。。。</p>
+<h3 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h3><p>大多数情况下，性能瓶颈往往不是单一的CPU或者I / O引起的，当两者都存在时，任意一方的速度提升，都能影响到程序最终的执行效率。</p>
+<p>在Python语言中有没有更好的解决方案呢？当然是有的，那就是并行编程（parallel programmning），下一篇接续介绍。</p>
 
                 </article>
                 <ul class="tags-postTags">
                     
                     <li>
-                        <a href="/tags/mongo/" rel="tag"># mongo</a>
+                        <a href="/tags/python/" rel="tag"># python</a>
                     </li>
                     
                 </ul>
@@ -172,11 +196,11 @@
     
     <nav id="gobottom" class="pagination">
         
-        <a class="prev-post" title="MongoDB 安全防护" href="/2019/08/21/mongo_safe/">
-            ← MongoDB 安全防护
-        </a>
-        
         <span class="prev-next-post">·</span>
+        
+        <a class="next-post" title="Flask 开发之Model：Flask-SQLAlchemy" href="/2020/01/08/flask-sqlalchemy/">
+            Flask 开发之Model：Flask-SQLAlchemy →
+        </a>
         
     </nav>
 
@@ -201,7 +225,7 @@
         </a>
     </div>
     <div class="toc-main">
-        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Quick-Start"><span class="toc-text">Quick Start</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Create-a-new-post"><span class="toc-text">Create a new post</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Run-server"><span class="toc-text">Run server</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Generate-static-files"><span class="toc-text">Generate static files</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Deploy-to-remote-sites"><span class="toc-text">Deploy to remote sites</span></a></li></ol></li></ol>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Python-多线程探究"><span class="toc-text">Python 多线程探究</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GIL锁"><span class="toc-text">GIL锁</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#多线程性能测试"><span class="toc-text">多线程性能测试</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#什么是CPU密集型、I-O-密集型？"><span class="toc-text">什么是CPU密集型、I/O 密集型？</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#应用场景"><span class="toc-text">应用场景</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#结语"><span class="toc-text">结语</span></a></li></ol></li></ol>
     </div>
 </div>
 
@@ -385,7 +409,7 @@
 			<a href="/" title="chengshicheng">chengshicheng &copy; 2020</a>
 			
 				
-			        <span hidden="true" id="/2019/08/20/hello-world/" class="leancloud-visitors" data-flag-title="Hello World">
+			        <span hidden="true" id="/2020/01/17/multi-thread/" class="leancloud-visitors" data-flag-title="Python 多线程探究">
 			            <span>阅读量 </span>
 			            <span class="leancloud-visitors-count">0</span>
 			        </span>
