@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+
+
+
+
+
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="preconnect" href="//www.googletagmanager.com">
+	<link rel="preconnect" href="//zz.bdstatic.com">
+	<link rel="preconnect" href="//sp0.baidu.com">
+	<link rel="preconnect" href="//www.google-analytics.com">
+	<link rel="preconnect" href="//cdn1.lncld.net">
+	<link rel="preconnect" href="//unpkg.com">
+	<link rel="preconnect" href="//app-router.leancloud.cn">
+	<link rel="preconnect" href="//9qpuwspm.api.lncld.net">
+	<link rel="preconnect" href="//gravatar.loli.net">
+
+	<title>基于Redis的分布式限流器 | chengshicheng</title>
+
+	<meta name="HandheldFriendly" content="True">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+	<meta name="generator" content="hexo">
+	<meta name="author" content="chengshicheng">
+	<meta name="description" content>
+
+	
+	<meta name="keywords" content>
+	
+
+	
+	<link rel="shortcut icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	<link rel="apple-touch-icon" href="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132">
+	
+
+	
+	<meta name="theme-color" content="#3c484e">
+	<meta name="msapplication-TileColor" content="#3c484e">
+	
+
+	
+
+	
+
+	<meta property="og:site_name" content="chengshicheng">
+	<meta property="og:type" content="article">
+	<meta property="og:title" content="基于Redis的分布式限流器 | chengshicheng">
+	<meta property="og:description" content>
+	<meta property="og:url" content="https://chengshicheng.site/2020/07/05/redis-cell/">
+
+	
+	<meta property="article:published_time" content="2020-07-05T13:07:00+08:00"> 
+	<meta property="article:author" content="chengshicheng">
+	<meta property="article:published_first" content="chengshicheng, /2020/07/05/redis-cell/">
+	
+
+	
+	
+	<link rel="stylesheet" href="/css/allinonecss.min.css">
+
+	
+	
+	
+</head>
+<body class="post-template">
+	<div class="site-wrapper">
+		
+
+
+
+
+<header class="site-header post-site-header outer">
+    <div class="inner">
+        
+<nav class="site-nav"> 
+    <div class="site-nav-left">
+        <ul class="nav">
+            <li>
+                
+                <a href="/" title="Home">HOME</a>
+                
+            </li>
+            
+            
+            <li>
+                <a href="/about" title="ABOUT">ABOUT</a>
+            </li>
+            
+            <li>
+                <a href="/archives" title="ARCHIVES">ARCHIVES</a>
+            </li>
+            
+            
+        </ul> 
+    </div>
+    
+    <div class="search-button-area">
+        <a href="#search" class="search-button">Search ...</a>
+    </div>
+     
+    <div class="site-nav-right">
+        
+        <a href="#search" class="search-button">Search ...</a>
+         
+        
+<div class="social-links">
+    
+    
+    
+    
+    
+    
+    
+</div>
+    </div>
+</nav>
+    </div>
+</header>
+
+
+<div id="site-main" class="site-main outer" role="main">
+    <div class="inner">
+        <header class="post-full-header">
+            <div class="post-full-meta">
+                <time class="post-full-meta-date" datetime="2020-07-05T05:56:34.000Z">
+                    2020-07-5
+                </time>
+                
+                <span class="date-divider">/</span>
+                
+                
+            </div>
+            <h1 class="post-full-title">基于Redis的分布式限流器</h1>
+        </header>
+        <div class="post-full ">
+            
+            <figure class="post-full-image" style="background-image: url(https://cdn.pixabay.com/photo/2019/08/06/12/14/chile-4388204_1280.jpg)">
+            </figure>
+            
+            <div class="post-full-content">
+                <article id="photoswipe" class="markdown-body">
+                    <h1 id="基于Redis的分布式限流器"><a href="#基于Redis的分布式限流器" class="headerlink" title="基于Redis的分布式限流器"></a>基于Redis的分布式限流器</h1><h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在高并发系统知识体系中，我们经常会看到这么一句话</p>
+<blockquote>
+<p><strong>保护高并发系统的三大利器：缓存、降级和限流</strong></p>
+</blockquote>
+<p> 那么什么是限流呢，字面意思就是限制流量，避免后台服务遭受超出服务器能承受的请求量。后台系统在部署时，一般都会经过压力测试，能大概知道服务器的处理能力处在一种什么样的水平，如果超过了上线，放任请求进来的话，可能会发生不可控的后果，而通过<strong>限流</strong>，在请求书达到设定的阈值时，多余的请求就可以直接拒绝服务，而不是一直排队请求直到压垮服务，能够在高并发时能够正常处理阈值的请求，而不是拖垮整个服务。</p>
+<p>限流的方式有很多，分享下几种常见的Redis解决方案吧。</p>
+<h2 id="固定窗口法"><a href="#固定窗口法" class="headerlink" title="固定窗口法"></a>固定窗口法</h2><p>固定窗口法也可称之为计数法，是限流算法里最简单也是最容易实现的一种算法，比如我们规定，接口A在1分钟内的访问次数不能超过1000个，我们可以统计每分钟内总的请求数量来进行判断，如下图所示：</p>
+<p><img alt="Uplj78.png" class="post-img b-lazy" data-img="https://s1.ax1x.com/2020/07/05/UpBNee.md.png" data-index="0" data-src="https://s1.ax1x.com/2020/07/05/UpBNee.md.png"></p>
+<p>通过redis那么我们可以这么做：在redis中设置一个A_key，过期时间为60s，在每次有接口A过来时，向redis获取A_key的值，如果A_key不存在或者A_key存在方式且value &lt; 1000，说明请求数在可控范围内，将value值+1后执行后续操作；如果value超过1000时，说明已经超过阈值，此时接口直接返回错误即可。</p>
+<p>对应的Python实现代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">can_pass_by_url</span><span class="params">(url_key, time_zone=<span class="number">60</span>, max=<span class="number">1000</span>)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    :param url_key: 用户访问的接口标识</span></span><br><span class="line"><span class="string">    :param time_zone: 接口限制的时间段(s)</span></span><br><span class="line"><span class="string">    :param max: 限制的时间段内允许多少请求通过</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    redis_conn = <span class="keyword">await</span> aioredis.create_redis_pool(address=<span class="string">'redis://localhost:6379/0'</span>, encoding=<span class="string">'utf-8'</span>)</span><br><span class="line">    count = <span class="keyword">await</span> redis_conn.get(url_key)</span><br><span class="line">    <span class="keyword">if</span> <span class="keyword">not</span> count:</span><br><span class="line">        count = <span class="number">1</span></span><br><span class="line">        <span class="keyword">await</span> redis_conn.setex(url_key, time_zone, count)</span><br><span class="line">    <span class="keyword">if</span> int(count) &lt; max:</span><br><span class="line">        <span class="keyword">await</span> redis_conn.incr(url_key)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+
+<p>这个方法虽然简单，但是无法有效处理临界值的问题，他只关心在这1分钟内的总请求数量，而忽略了临界值附近的突发流量。如果在0:59的时候进来500个合法请求，又在1:01时进来600个请求，在这种情况下，在这前后3s内的请数就已经超过了阈值，但是并没有被限流，服务还是存在被压垮的可能，存在这个问题是由于计数器固定窗口算法的粒度很粗，不够细，所以无法保证任一时间窗口内的请求次数都是小于阈值的。</p>
+<h2 id="滑动窗口法"><a href="#滑动窗口法" class="headerlink" title="滑动窗口法"></a>滑动窗口法</h2><p>为了解决统计精度太低的问题，引入了滑动窗口算法。下面这张图，很好地解释了固定窗口和滑动窗口算法的区别。</p>
+<p><img alt class="post-img b-lazy" data-img="https://s1.ax1x.com/2020/07/05/Up1iXq.md.png" data-index="1" data-src="https://s1.ax1x.com/2020/07/05/Up1iXq.md.png"></p>
+<p>一个灰色大方框代表一个统计周期，就是60s，然后我们将时间窗口进行划分，假设分成6格，每格窗口的时间大小是10s，并且每个小窗口都有各自独立的计数器。没经过一个请求，对应的小窗口的计数器+1，没经过10s，时间窗口就向前移动一个格子，只要窗口内包含的所有子窗口总和超过阈值，就拒绝处理新的请求。</p>
+<p>由此可见，当滑动窗口的格子划分的越多，那么滑动窗口的滚动就越平滑，限流的统计就会越精确。针对固定窗口法精细度不够的问题，只要我们把窗口划分的足够小（比如1s），就可以顺利触发限流机制。</p>
+<p>根据上面滑动窗口的定义，在redis实现限流很简单了：</p>
+<ol>
+<li>需要创建60个key，key为秒级的时间戳，value为在当前秒级内的请求计数，过期时间设置为60s，</li>
+<li>统计窗口内的请求总数，即60个key的有效值总和，判断阈值</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">async</span> <span class="function"><span class="keyword">def</span> <span class="title">can_pass_by_url</span><span class="params">(url_key, time_zone=<span class="number">60</span>, max=<span class="number">1000</span>)</span>:</span></span><br><span class="line">    <span class="string">"""</span></span><br><span class="line"><span class="string">    :param url_key: 用户访问的接口标识(即用户在客户端进行的动作)</span></span><br><span class="line"><span class="string">    :param time_zone: 接口限制的时间段(s)</span></span><br><span class="line"><span class="string">    :param max: 限制的时间段内允许多少请求通过</span></span><br><span class="line"><span class="string">    """</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">_genrate_key</span><span class="params">(url_key, time)</span>:</span></span><br><span class="line">        <span class="keyword">return</span> <span class="string">f'<span class="subst">&#123;url_key&#125;</span>_<span class="subst">&#123;time&#125;</span>'</span></span><br><span class="line"></span><br><span class="line">    redis_conn = <span class="keyword">await</span> aioredis.create_redis_pool(address=<span class="string">'redis://localhost:6379/0'</span>, encoding=<span class="string">'utf-8'</span>)</span><br><span class="line"></span><br><span class="line">    now_ts = int(time.time())</span><br><span class="line">    keys = [_genrate_key(url_key, now_ts - x) <span class="keyword">for</span> x <span class="keyword">in</span> range(time_zone)]</span><br><span class="line">    values = <span class="keyword">await</span> redis_conn.mget(*keys)</span><br><span class="line">    count = sum([int(v) <span class="keyword">for</span> v <span class="keyword">in</span> values <span class="keyword">if</span> v <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>])</span><br><span class="line">    <span class="keyword">if</span> count &lt; max:</span><br><span class="line">        key = _genrate_key(url_key, now_ts)</span><br><span class="line">        <span class="keyword">if</span> values[<span class="number">0</span>] <span class="keyword">is</span> <span class="literal">None</span>:</span><br><span class="line">            <span class="keyword">await</span> redis_conn.setex(key, time_zone, <span class="number">1</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">await</span> redis_conn.incr(key)</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">True</span></span><br><span class="line">    <span class="keyword">return</span> <span class="literal">False</span></span><br></pre></td></tr></table></figure>
+
+<p>虽然滑动窗口法避免了时间界限的问题，但是依然无法很好解决细时间粒度上面请求过于集中的问题，就例如限制了1分钟请求不能超过1000次，请求都集中在59s时发送过来，这样滑动窗口的效果就大打折扣。 为了使流量更加平滑，我们可以使用更加高级的漏桶算法和令牌桶算法。</p>
+<h2 id="漏桶算法"><a href="#漏桶算法" class="headerlink" title="漏桶算法"></a>漏桶算法</h2><p>什么是漏桶算法？</p>
+<p>漏桶算法的思路不复杂，它先定义一个固定容量的桶，可以将请求想象成是水流，水流可以任意速率流入漏桶中，同时漏桶以固定的速率将水流出。如果流入速度太大会导致水满溢出，溢出的请求被丢弃。</p>
+<p><img alt class="post-img b-lazy" data-img="https://s1.ax1x.com/2020/07/08/UZjQzV.jpg" data-index="2" data-src="https://s1.ax1x.com/2020/07/08/UZjQzV.jpg"></p>
+<p>实现的话可以用Redis的固定容量的<code>list</code>来实现一个queue队列，queue表示的就是速率限制大小，这里就是当有消息要发送的时候看 queue 中是否还有位置，如果有，那么就将消息放进 queue 中，这个 queue 以 FIFO 的形式提供服务；如果 queue 没有位置了，消息将被抛弃。</p>
+<p>在消息被放进 queue 之后，还需要维护一个定时器，这个定时器的周期就是我们设置的频率周期，例如我们设置得频率是 5条/s，那么定时器的周期就是 200ms，定时器每 200ms 去 queue 里获取一次消息，如果有消息，那么就发送出去，如果没有就轮空。</p>
+<p>这种实现方式比较复杂，限于篇幅这里就没有实现了。漏桶算法的缺陷也比较明显，即便桶是空的，如果短时间内有大量的突发请求（大水流入桶）时，即便此时服务器没有任何负载，但是流出速率不会变，每个请求也都得在队列中等待一段时间才能被响应。</p>
+<h2 id="令牌桶算法"><a href="#令牌桶算法" class="headerlink" title="令牌桶算法"></a>令牌桶算法</h2><p>令牌桶算法是漏桶算法的改进版，可以支持突发流量。不过与漏桶算法不同的是，令牌桶算法的漏桶中存放的是令牌而不是流量。</p>
+<p>那么令牌桶算法是怎么突发流量的呢？</p>
+<p>最开始，令牌桶是空的，我们以恒定速率往令牌桶里加入令牌，令牌桶被装满时，多余的令牌会被丢弃。当请求到来时，会先尝试从令牌桶获取令牌（相当于从令牌桶移除一个令牌），获取成功则请求被放行，获取失败则说明达到限流标准，可以阻塞或拒绝请求。</p>
+<p><img alt class="post-img b-lazy" data-img="https://s1.ax1x.com/2020/07/08/UZX3Ed.jpg" data-index="3" data-src="https://s1.ax1x.com/2020/07/08/UZX3Ed.jpg"></p>
+<p>令牌桶算法既能够将所有的请求平均分布到时间区间内，又能接受服务器能够承受范围内的突发请求，因此是目前使用较为广泛的一种限流算法。</p>
+<p>实现方式的话和漏桶算法类似：</p>
+<ol>
+<li>创建一个生产者定时器，按照设定的频率定期生成一个令牌放桶里，如果桶满了则丢弃令牌。</li>
+<li>收到一个请求就从桶里取出一个令牌，若桶里没有令牌则拒绝请求</li>
+</ol>
+<p>漏桶算法和令牌桶算法最明显的区别是令牌桶算法允许流量一定程度的突发。因为默认的令牌桶算法，取走token是不需要耗费时间的，也就是说，假设桶内有100个token时，那么可以瞬间允许100个请求通过。令牌桶算法由于实现简单，且允许某些流量的突发，对用户友好，所以被业界采用地较多。当然我们需要具体情况具体分析，只有最合适的算法，没有最优的算法。</p>
+<p>以上四种redis限流算法的实现，需要反复调用 Redis 查询与计算，一次限流判断需要多次请求较为耗时，而且在高并发的时候，指令执行顺序可能会对限流效果造成一定的误差。因此我们采用编写 Lua 脚本运行的方式，将运算过程放在 Redis 端，使得对 Redis 进行一次原子操作请求就能完成限流的判断。</p>
+<h2 id="Redis-cell"><a href="#Redis-cell" class="headerlink" title="Redis-cell"></a>Redis-cell</h2><p>redis 4.0 以后开始支持扩展模块，<a href="https://github.com/brandur/redis-cell" target="_blank" rel="noopener">redis-cell</a> 是一个用Rust语言编写的基于令牌桶算法的的限流模块，提供原子性的限流功能，并允许突发流量，可以很方便的应用于分布式环境中</p>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>官方提供了安装包和源码编译两种方式，源码编译要安装Rust环境，比较复杂，这里介绍安装包方式安装：</p>
+<ol>
+<li>根据操作系统<a href="https://github.com/brandur/redis-cell/releases" target="_blank" rel="noopener">下载</a>安装包;</li>
+<li>将文件解压到redis能访问到的路径下<code>/etc/redis/libredis_cell.so</code>；</li>
+<li>进入 redis-cli，执行命令<code>module load  /etc/redis/libredis_cell.so</code>;</li>
+</ol>
+<h3 id="参数说明"><a href="#参数说明" class="headerlink" title="参数说明"></a>参数说明</h3><p>以下命令表示从一个初始值为100的令牌桶中取3个令牌，该令牌桶的速率限制为400次/60秒。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CL.THROTTLE test 100 400 60 3</span><br><span class="line">              				  ▲      ▲   ▲  ▲  ▲</span><br><span class="line">             	 			   |  		 |   	 | 		|   └── 3       表示本次要申请的令牌数，不写则默认为 1</span><br><span class="line">              				   |   		 |     └─┴─── 400  表示在60s内内允许访问的次数是400</span><br><span class="line">              				   |   	   └─────── 100  官方叫max_burst，其值为令牌桶的容量-1， 首次执行时令牌桶会默认填满</span><br><span class="line">              			     └─────────  test   表示redis的key</span><br></pre></td></tr></table></figure>
+
+<p>再来看一下返回参数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; CL.THROTTLE test 100 400 60 3</span><br><span class="line">1) (integer) 0      	#  0 表示允许，1表示拒绝</span><br><span class="line">2) (integer) 101    #  桶总容量 就是 100+1得到的。</span><br><span class="line">3) (integer) 98     #  桶剩余空间，取得了3个所以剩下98</span><br><span class="line">4) (integer) -1     #  如果拒绝了，需要多长时间后再试(桶有空间了，单位秒)</span><br><span class="line">5) (integer) 0      #  表示多久后令牌桶中的令牌会存满(单位秒)</span><br></pre></td></tr></table></figure>
+
+<p>如果将最后一个参数调大，并且重复执行j几次，就可以看到相应参数的变化</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1:6379&gt; CL.THROTTLE test 100 400 60 80</span><br><span class="line">1) (integer) 0</span><br><span class="line">2) (integer) 101</span><br><span class="line">3) (integer) 21</span><br><span class="line">4) (integer) -1</span><br><span class="line">5) (integer) 12</span><br><span class="line">127.0.0.1:6379&gt; CL.THROTTLE test 100 400 60 80</span><br><span class="line">1) (integer) 1</span><br><span class="line">2) (integer) 101</span><br><span class="line">3) (integer) 27</span><br><span class="line">4) (integer) 7</span><br><span class="line">5) (integer) 10</span><br><span class="line">127.0.0.1:6379&gt;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到第二次请求80个令牌时，由于桶中令牌数量不足，申请令牌操作直接被拒绝了。</p>
+<p>在某些业务场场景下如果需要重试，直接取出返回结果的第四个值<code>10s</code>进行sleep即可，如果不想阻塞线程，也可以异步定时任务来重试。</p>
+<h2 id="后记"><a href="#后记" class="headerlink" title="后记"></a>后记</h2><p>本文由浅入深的介绍了常用的限流算法实现，可以根据自己的业务场景选择合适算法，如果选用窗口法的话，最好由lua脚本实现原子性操作，才能保证高并发下的精准限流，但是有了Redis-cell模块以后，就可以轻松对付大多数的限流场景了，简直太方便。</p>
+
+                </article>
+                <ul class="tags-postTags">
+                    
+                    <li>
+                        <a href="/tags/redis/" rel="tag"># redis</a>
+                    </li>
+                    
+                    <li>
+                        <a href="/tags/%E9%99%90%E6%B5%81/" rel="tag"># 限流</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+    <nav id="gobottom" class="pagination">
+        
+        <span class="prev-next-post">·</span>
+        
+        <a class="next-post" title="Nginx location的使用" href="/2020/06/06/nginx-location/">
+            Nginx location的使用 →
+        </a>
+        
+    </nav>
+
+    
+    <div class="inner">
+        <div id="comment"></div>
+    </div>
+    
+</div>
+
+<div class="toc-bar">
+    <div class="toc-btn-bar">
+        <a href="#site-main" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M793.024 710.272a32 32 0 1 0 45.952-44.544l-310.304-320a32 32 0 0 0-46.4 0.48l-297.696 320a32 32 0 0 0 46.848 43.584l274.752-295.328 286.848 295.808z"/></svg>
+        </a>
+        <div class="toc-btn toc-switch">
+            <svg class="toc-open" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M779.776 480h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M779.776 672h-387.2a32 32 0 0 0 0 64h387.2a32 32 0 0 0 0-64M256 288a32 32 0 1 0 0 64 32 32 0 0 0 0-64M392.576 352h387.2a32 32 0 0 0 0-64h-387.2a32 32 0 0 0 0 64M256 480a32 32 0 1 0 0 64 32 32 0 0 0 0-64M256 672a32 32 0 1 0 0 64 32 32 0 0 0 0-64"/></svg>
+            <svg class="toc-close hide" viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M512 960c-247.039484 0-448-200.960516-448-448S264.960516 64 512 64 960 264.960516 960 512 759.039484 960 512 960zM512 128.287273c-211.584464 0-383.712727 172.128262-383.712727 383.712727 0 211.551781 172.128262 383.712727 383.712727 383.712727 211.551781 0 383.712727-172.159226 383.712727-383.712727C895.712727 300.415536 723.551781 128.287273 512 128.287273z"/><path d="M557.05545 513.376159l138.367639-136.864185c12.576374-12.416396 12.672705-32.671738 0.25631-45.248112s-32.704421-12.672705-45.248112-0.25631l-138.560301 137.024163-136.447897-136.864185c-12.512727-12.512727-32.735385-12.576374-45.248112-0.063647-12.512727 12.480043-12.54369 32.735385-0.063647 45.248112l136.255235 136.671523-137.376804 135.904314c-12.576374 12.447359-12.672705 32.671738-0.25631 45.248112 6.271845 6.335493 14.496116 9.504099 22.751351 9.504099 8.12794 0 16.25588-3.103239 22.496761-9.247789l137.567746-136.064292 138.687596 139.136568c6.240882 6.271845 14.432469 9.407768 22.65674 9.407768 8.191587 0 16.352211-3.135923 22.591372-9.34412 12.512727-12.480043 12.54369-32.704421 0.063647-45.248112L557.05545 513.376159z"/></svg>
+        </div>
+        <a href="#gobottom" class="toc-btn">
+            <svg viewbox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M231.424 346.208a32 32 0 0 0-46.848 43.584l297.696 320a32 32 0 0 0 46.4 0.48l310.304-320a32 32 0 1 0-45.952-44.544l-286.848 295.808-274.752-295.36z"/></svg>
+        </a>
+    </div>
+    <div class="toc-main">
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Redis的分布式限流器"><span class="toc-text">基于Redis的分布式限流器</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#前言"><span class="toc-text">前言</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#固定窗口法"><span class="toc-text">固定窗口法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#滑动窗口法"><span class="toc-text">滑动窗口法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#漏桶算法"><span class="toc-text">漏桶算法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#令牌桶算法"><span class="toc-text">令牌桶算法</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Redis-cell"><span class="toc-text">Redis-cell</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#安装"><span class="toc-text">安装</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#参数说明"><span class="toc-text">参数说明</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#后记"><span class="toc-text">后记</span></a></li></ol></li></ol>
+    </div>
+</div>
+
+
+
+<!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo https://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+	</div>
+	
+
+
+<aside class="read-next outer">
+    <div class="inner">
+        <div class="read-next-feed">
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+  <header class="read-next-card-header">
+    <small class="read-next-card-header-sitetitle">&mdash; chengshicheng &mdash;</small>
+    <h3 class="read-next-card-header-title">最新文章</h3>
+  </header>
+  <div class="read-next-divider">
+    <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24">
+      <path d="M13 14.5s2 3 5 3 5.5-2.463 5.5-5.5S21 6.5 18 6.5c-5 0-7 11-12 11C2.962 17.5.5 15.037.5 12S3 6.5 6 6.5s4.5 3.5 4.5 3.5"/>
+    </svg>
+  </div>
+  <div class="read-next-card-content">
+    <ul>
+      
+      
+      
+      <li>
+        <a href="/2020/07/05/redis-cell/">基于Redis的分布式限流器</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2020/06/06/nginx-location/">Nginx location的使用</a>
+      </li>
+      
+      
+      
+      <li>
+        <a href="/2020/05/23/redis-key/">Redis 千万不要乱用KEYS命令</a>
+      </li>
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+    </ul>
+  </div>
+  <footer class="read-next-card-footer">
+    <a href="/archives">  MORE  → </a>
+  </footer>
+</article>
+
+            
+            
+            
+
+
+            
+            
+            
+
+<article class="read-next-card" style="background-image: url(https://demo.ghost.io/content/images/size/w2000/2017/07/blog-cover.jpg)">
+	<header class="read-next-card-header tagcloud-card">
+		<h3 class="read-next-card-header-title">标签云</h3>
+	</header>
+	<div class="read-next-card-content-ext">
+		<a href="/tags/Django/" style="font-size: 14px;">Django</a> <a href="/tags/Flask/" style="font-size: 14px;">Flask</a> <a href="/tags/Linux/" style="font-size: 14px;">Linux</a> <a href="/tags/Nginx/" style="font-size: 14px;">Nginx</a> <a href="/tags/SQLAlchemy/" style="font-size: 14px;">SQLAlchemy</a> <a href="/tags/gcc/" style="font-size: 14px;">gcc</a> <a href="/tags/mongo/" style="font-size: 19px;">mongo</a> <a href="/tags/mysql/" style="font-size: 14px;">mysql</a> <a href="/tags/python/" style="font-size: 24px;">python</a> <a href="/tags/redis/" style="font-size: 19px;">redis</a> <a href="/tags/so/" style="font-size: 14px;">so</a> <a href="/tags/%E7%88%AC%E8%99%AB/" style="font-size: 14px;">爬虫</a> <a href="/tags/%E9%99%90%E6%B5%81/" style="font-size: 14px;">限流</a>
+	</div>
+</article>
+
+            
+        </div>
+    </div>
+</aside>
+
+	
+
+
+
+
+<div id="search" class="search-overlay">
+    <div class="search-form">
+        
+        <div class="search-overlay-logo">
+        	<img src="https://thirdwx.qlogo.cn/mmopen/vi_32/EqtIOwqgqlWgibwNnuGlFgzCVAbA2Wu3N1kKf1NNTtVRicCN34a7trkFD0L4PGEU9XxCGrnXZqb9TZAQkXy7mk9Q/132" alt="chengshicheng">
+        </div>
+        
+        <input id="local-search-input" class="search-input" type="text" name="search" placeholder="搜索 ...">
+        <a class="search-overlay-close" href="#"></a>
+    </div>
+    <div id="local-search-result"></div>
+</div>
+
+<footer class="site-footer outer">
+	<div class="site-footer-content inner">
+		<div class="copyright">
+			<a href="/" title="chengshicheng">chengshicheng &copy; 2020</a>
+			
+				
+			        <span hidden="true" id="/2020/07/05/redis-cell/" class="leancloud-visitors" data-flag-title="基于Redis的分布式限流器">
+			            <span>阅读量 </span>
+			            <span class="leancloud-visitors-count">0</span>
+			        </span>
+	    		
+    		
+		</div>
+		<nav class="site-footer-nav">
+			
+			<a href="https://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a>
+			<a href="https://github.com/xzhih/hexo-theme-casper" title="Casper" target="_blank" rel="noopener">Casper</a>
+		</nav>
+	</div>
+</footer>
+	
+
+
+<script>
+    if(window.navigator && navigator.serviceWorker) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister()
+            }
+        })
+    }
+</script>
+
+
+<script id="scriptLoad" src="/js/allinone.min.js" async></script>
+
+
+<script>
+    document.getElementById('scriptLoad').addEventListener('load', function () {
+        
+        
+            var bLazy = new Blazy();
+        
+
+        
+        
+
+        
+        
+        
+            searchFunc("/");
+        
+        
+    })
+</script>
+
+
+
+<link rel="stylesheet" href="/photoswipe/photoswipe.css">
+<link rel="stylesheet" href="/photoswipe/default-skin/default-skin.css">
+<script src="/photoswipe/photoswipe.min.js"></script>
+<script src="/photoswipe/photoswipe-ui-default.min.js"></script>
+
+
+
+
+<script id="valineScript" src="//unpkg.com/valine/dist/Valine.min.js" async></script>
+<script>
+    document.getElementById('valineScript').addEventListener("load", function() {
+        new Valine({
+            el: '#comment' ,
+            verify: false,
+            notify: false,
+            appId: '',
+            appKey: '',
+            placeholder: 'Just go go',
+            pageSize: 10,
+            avatar: 'mm',
+            visitor: true
+        })
+    });
+</script>
+
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded',function(){
+        var bp = document.createElement('script');
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        }
+        else {
+            bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+        }
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(bp, s);
+    });
+</script>
+
+
+</body>
+</html>
